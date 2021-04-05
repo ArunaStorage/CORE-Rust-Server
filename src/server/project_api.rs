@@ -3,13 +3,12 @@ use std::sync::Arc;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services::project_api_server::ProjectApi;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::{
-    models::{self, Dataset},
+    models::{self},
     services::DatasetList,
 };
 use tonic::Response;
 
 use crate::database::{
-    common_models::DatabaseHandler,
     data_models::{DatasetEntry, ProjectEntry},
     database_model_wrapper::Database,
     mongo_connector::MongoHandler,

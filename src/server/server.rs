@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
-use log::{info, warn};
+use log::{info};
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services::{
     dataset_objects_service_server::DatasetObjectsServiceServer,
     dataset_service_server::DatasetServiceServer, object_load_server::ObjectLoadServer,
     project_api_server::ProjectApiServer,
 };
-use tonic::{transport::Server, Request, Response, Status};
+use tonic::{transport::Server};
 
 use crate::objectstorage::s3_objectstorage::S3Handler;
 
@@ -21,18 +21,6 @@ use crate::SETTINGS;
 
 type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
-//Standard collection names for mongodb endpoints
-const DATASET_NAME: &str = "datasets";
-const OBJECT_NAME: &str = "objects";
-const DATASETVERSION_NAME: &str = "versions";
-const PROJECT_NAME: &str = "projects";
-
-pub struct Handle {
-    pub datasets: DatasetsServer,
-    pub projects: ProjectServer,
-    pub objects: ObjectServer,
-    pub load: LoadServer,
-}
 
 pub async fn start_server() -> ResultWrapper<()> {
     let s3_endpoint = SETTINGS
