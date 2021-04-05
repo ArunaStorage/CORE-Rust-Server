@@ -1,18 +1,22 @@
-FROM rust:alpine AS builder
+FROM rust:latest AS builder
 
 WORKDIR /app_build
-RUN apk -U upgrade && apk add openssl-dev && apk add --no-cache musl-dev && apk add protoc
 
-RUN rustup target add x86_64-unknown-linux-musl
 RUN rustup component add rustfmt
 
 COPY . .
-RUN cargo build --target x86_64-unknown-linux-musl --release
 
-FROM scratch
+RUN cargo build --release
 
+FROM debian:buster-slim
+
+RUN apt-get -y update && apt-get -y upgrade && apt-get install -y libssl-dev
+
+RUN useradd -ms /bin/bash appuser
+
+USER appuser
 WORKDIR /app
-COPY --from=builder /app_build/target/x86_64-unknown-linux-musl/release/core_server .
+COPY --from=builder /app_build/target/release/core_server .
 WORKDIR /
 
 COPY config .

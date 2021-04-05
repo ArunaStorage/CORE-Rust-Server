@@ -31,3 +31,7 @@ scienceobjectsdb_rust_api = { git = "https://github.com/ScienceObjectsDB/rust-ap
 [dependencies.serde]
 version = "1"
 features = ["derive"]
+
+[profile.release]
+opt-level = 3
+lto = "thin"
