@@ -1,0 +1,16 @@
+Database:
+  Mongo:
+    Use: true
+    Host: 127.0.0.1
+    Port: 27017
+    Username: root
+    Database: "test-database"
+Server:
+  Host: "127.0.0.1"
+  Port: 50051
+Storage:
+  Endpoint: "http://localhost:9000"
+  Bucket: "test-bucket"
+Oauth2Auth:
+  Use: true
+  UserInfoEndpoint: https://keycloak.infra.ingress.rancher.computational.bio/auth/realms/BioDataDB/protocol/openid-connect/userinfo
