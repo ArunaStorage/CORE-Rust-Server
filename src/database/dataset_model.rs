@@ -1,8 +1,3 @@
-use async_trait::async_trait;
-
-use std::sync::Arc;
-
-use reqwest::header::COOKIE;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::{models, services};
 use serde::{Deserialize, Serialize};
 

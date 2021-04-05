@@ -4,7 +4,6 @@ use tonic::metadata::MetadataMap;
 use crate::database::common_models::{Resource, Right};
 
 type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
-
 #[async_trait]
 pub trait AuthHandler {
     async fn authorize(
