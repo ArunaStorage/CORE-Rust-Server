@@ -80,3 +80,23 @@ impl DatabaseModel<'_> for DatasetObject {
         Ok("Object".to_string())
     }
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct DatasetVersion {
+    pub id: String,
+    pub dataset_id: String,
+    pub description: String,
+    pub labels: Vec<Label>,
+    pub metadata: Vec<Metadata>,
+    pub created: DateTime,
+    pub version: Version,
+    pub object_group_ids: Vec<String>,
+    pub object_count: i64,
+    pub status: Status,
+}
+
+impl DatabaseModel<'_> for DatasetVersion {
+    fn get_model_name() -> ResultWrapper<String> {
+        Ok("DatasetVersion".to_string())
+    }
+}
