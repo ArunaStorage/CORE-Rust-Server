@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 
 use scienceobjectsdb_rust_api::sciobjectsdbapi::models;
 
+use crate::objectstorage::objectstorage::StorageHandler;
+
 use super::data_models::{DatasetEntry, DatasetObjectGroup};
 
 type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
@@ -21,6 +23,7 @@ pub enum Resource {
     Dataset,
     DatasetVersion,
     ObjectGroup,
+    Object,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -228,6 +231,18 @@ pub fn to_rights(proto_rights: Vec<i32>) -> Vec<Right> {
     return rights;
 }
 
+pub fn to_version(version: models::Version) -> Version {
+    let version = Version {
+        major: version.major,
+        minor: version.minor,
+        patch: version.patch,
+        revision: version.revision,
+        version_stage: VersionStage::Stable,
+    };
+
+    return version;
+}
+
 pub fn to_proto_metadata(metadata: &Vec<Metadata>) -> Vec<models::Metadata> {
     let mut proto_metadata = Vec::new();
     for metadata_entry in metadata {
@@ -287,4 +302,16 @@ pub fn to_proto_rights(rights: &Vec<Right>) -> Vec<i32> {
     }
 
     return proto_rights;
+}
+
+pub fn to_proto_version(version: &Version) -> models::Version {
+    let version = models::Version {
+        major: version.major,
+        minor: version.minor,
+        patch: version.patch,
+        revision: version.revision,
+        ..Default::default()
+    };
+
+    return version;
 }

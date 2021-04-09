@@ -11,6 +11,7 @@ use super::{
         Metadata, Origin, Status, Version,
     },
     data_models::{DatasetEntry, DatasetObject, DatasetObjectGroup},
+    database_model_wrapper::Database,
     mongo_connector::MongoHandler,
 };
 
@@ -19,10 +20,10 @@ use super::common_models;
 type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 impl DatasetObjectGroup {
-    pub fn new_from_proto_create(
+    pub fn new_from_proto_create<T: Database>(
         request: services::CreateObjectGroupRequest,
         bucket: String,
-        handler: Arc<MongoHandler>,
+        handler: Arc<T>,
     ) -> ResultWrapper<Self> {
         let uuid = uuid::Uuid::new_v4();
 

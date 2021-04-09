@@ -1,7 +1,6 @@
-use crate::database::database_model_wrapper::Database;
+use crate::{auth::authenticator::AuthHandler, database::database_model_wrapper::Database};
 use std::sync::Arc;
 
-use mongodb::options::ResolverConfig;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services::object_load_server::ObjectLoad;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services::CreateLinkResponse;
 
@@ -9,33 +8,33 @@ use scienceobjectsdb_rust_api::sciobjectsdbapi::models;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services;
 use tonic::Response;
 
-use crate::database::common_models::DatabaseHandler;
 use crate::{
     database::{
-        data_models::DatasetEntry, data_models::DatasetObjectGroup, data_models::ProjectEntry,
-        mongo_connector::MongoHandler,
+        data_models::DatasetObjectGroup,
+        common_models::{Resource, Right},
     },
-    objectstorage::objectstorage,
 };
 
 use crate::objectstorage::objectstorage::StorageHandler;
 
-pub struct LoadServer {
-    pub mongo_client: Arc<MongoHandler>,
+pub struct LoadServer<T: Database + 'static> {
+    pub mongo_client: Arc<T>,
     pub object_handler: Arc<dyn StorageHandler>,
+    pub auth_handler: Arc<dyn AuthHandler>,
 }
 
 #[tonic::async_trait]
-impl ObjectLoad for LoadServer {
+impl<T: Database> ObjectLoad for LoadServer<T> {
     async fn create_upload_link(
         &self,
         request: tonic::Request<models::Id>,
     ) -> Result<Response<services::CreateLinkResponse>, tonic::Status> {
-        let id = request.into_inner().id;
+        let upload_object = request.get_ref();
+        self.auth_handler.authorize(request.metadata(), Resource::Object, Right::Write, upload_object.id.clone()).await?;
 
         let object_group_option: Option<Vec<DatasetObjectGroup>> = match self
             .mongo_client
-            .find_by_key("objects.id".to_string(), id.clone())
+            .find_by_key("objects.id".to_string(), upload_object.id.clone())
             .await
         {
             Ok(value) => value,
@@ -50,7 +49,7 @@ impl ObjectLoad for LoadServer {
             None => {
                 return Err(tonic::Status::not_found(format!(
                     "Could not find {}",
-                    id.clone()
+                    upload_object.id.clone()
                 )))
             }
         };
@@ -58,7 +57,7 @@ impl ObjectLoad for LoadServer {
         for object_group in object_groups {
             for object in object_group.objects {
                 let cloned_object = object.clone();
-                if object.id == id {
+                if object.id == upload_object.id {
                     let link = match self
                         .object_handler
                         .create_upload_link(object.location)
@@ -83,7 +82,7 @@ impl ObjectLoad for LoadServer {
 
         Err(tonic::Status::not_found(format!(
             "Could not find {}",
-            id.clone()
+            upload_object.id.clone()
         )))
     }
 
@@ -91,11 +90,12 @@ impl ObjectLoad for LoadServer {
         &self,
         request: tonic::Request<models::Id>,
     ) -> Result<Response<services::CreateLinkResponse>, tonic::Status> {
-        let id = request.into_inner().id;
+        let download_object = request.get_ref();
+        self.auth_handler.authorize(request.metadata(), Resource::Object, Right::Read, download_object.id.clone()).await?;
 
         let object_group_option: Option<Vec<DatasetObjectGroup>> = match self
             .mongo_client
-            .find_by_key("objects.id".to_string(), id.clone())
+            .find_by_key("objects.id".to_string(), download_object.id.clone())
             .await
         {
             Ok(value) => value,
@@ -110,14 +110,14 @@ impl ObjectLoad for LoadServer {
             None => {
                 return Err(tonic::Status::not_found(format!(
                     "Could not find {}",
-                    id.clone()
+                    download_object.id.clone()
                 )))
             }
         };
         for object_group in object_groups {
             for object in object_group.objects {
                 let cloned_object = object.clone();
-                if object.id == id {
+                if object.id == download_object.id {
                     let link = match self
                         .object_handler
                         .create_download_link(object.location)
@@ -142,7 +142,7 @@ impl ObjectLoad for LoadServer {
 
         Err(tonic::Status::not_found(format!(
             "Could not find {}",
-            id.clone()
+            download_object.id.clone()
         )))
     }
 }

@@ -4,7 +4,7 @@ use super::common_models::{DatabaseModel, Label};
 
 type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 #[async_trait]
-pub trait Database {
+pub trait Database: Send + Sync {
     async fn find_by_key<'de, T: DatabaseModel<'de>>(
         &self,
         key: String,

@@ -8,18 +8,15 @@ use scienceobjectsdb_rust_api::sciobjectsdbapi::{
 };
 use tonic::Response;
 
-use crate::database::{
-    data_models::{DatasetEntry, ProjectEntry},
-    database_model_wrapper::Database,
-    mongo_connector::MongoHandler,
-};
+use crate::{auth::authenticator::AuthHandler, database::{common_models::{Resource, Right}, data_models::{DatasetEntry, ProjectEntry}, database_model_wrapper::Database}};
 
-pub struct ProjectServer {
-    pub mongo_client: Arc<MongoHandler>,
+pub struct ProjectServer<T: Database + 'static> {
+    pub mongo_client: Arc<T>,
+    pub auth_handler: Arc<dyn AuthHandler>,
 }
 
 #[tonic::async_trait]
-impl ProjectApi for ProjectServer {
+impl<T: Database> ProjectApi for ProjectServer<T> {
     async fn create_project(
         &self,
         request: tonic::Request<services::CreateProjectRequest>,
@@ -54,6 +51,11 @@ impl ProjectApi for ProjectServer {
         &self,
         request: tonic::Request<models::Id>,
     ) -> Result<tonic::Response<services::DatasetList>, tonic::Status> {
+        let get_request = request.get_ref();
+        self.auth_handler.authorize(request.metadata(), Resource::Project, Right::Read, get_request.id.clone()).await?;
+
+        
+
         let datasets_option: Option<Vec<DatasetEntry>> = match self
             .mongo_client
             .find_by_key("project_id".to_string(), request.into_inner().id)

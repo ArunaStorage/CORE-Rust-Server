@@ -3,14 +3,14 @@ use tonic::metadata::MetadataMap;
 
 use crate::database::common_models::{Resource, Right};
 
-type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 #[async_trait]
-pub trait AuthHandler {
+pub trait AuthHandler: Send + Sync {
     async fn authorize(
-        metadata: MetadataMap,
+        &self,
+        metadata: &MetadataMap,
         resource: Resource,
         right: Right,
         id: String,
-    ) -> ResultWrapper<bool>;
-    async fn user_id(metadata: MetadataMap) -> ResultWrapper<String>;
+    ) -> std::result::Result<(), tonic::Status>;
+    async fn user_id(&self, metadata: &MetadataMap) -> std::result::Result<String, tonic::Status>;
 }

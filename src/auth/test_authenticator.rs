@@ -8,20 +8,21 @@ use super::authenticator::AuthHandler;
 
 type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
-struct TestAuthenticator {}
+pub struct TestAuthenticator {}
 
 #[async_trait]
 impl AuthHandler for TestAuthenticator {
     async fn authorize(
-        _metadata: MetadataMap,
+        &self,
+        _metadata: &MetadataMap,
         _resource: Resource,
         _right: Right,
         _id: String,
-    ) -> ResultWrapper<bool> {
-        Ok(true)
+    ) -> std::result::Result<(), tonic::Status> {
+        Ok(())
     }
 
-    async fn user_id(_metadata: MetadataMap) -> ResultWrapper<String> {
+    async fn user_id(&self, _metadata: &MetadataMap) -> std::result::Result<String, tonic::Status> {
         Ok("testuser".to_string())
     }
 }

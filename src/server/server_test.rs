@@ -68,6 +68,8 @@ mod server_test {
         project_api::ProjectServer,
     };
 
+    use crate::auth::test_authenticator::TestAuthenticator;
+
     #[tokio::test]
     async fn full_test() {
         test_init();
@@ -92,22 +94,28 @@ mod server_test {
             s3_bucket.clone(),
         ));
 
+        let authz_handler = Arc::new(TestAuthenticator {});
+
         let project_endpoints = ProjectServer {
             mongo_client: mongo_handler.clone(),
+            auth_handler: authz_handler.clone(),
         };
 
         let dataset_endpoints = DatasetsServer {
             mongo_client: mongo_handler.clone(),
+            auth_handler: authz_handler.clone(),
         };
 
         let objects_endpoints = ObjectServer {
             mongo_client: mongo_handler.clone(),
             object_handler: object_storage_handler.clone(),
+            auth_handler: authz_handler.clone(),
         };
 
         let load_endpoints = LoadServer {
             mongo_client: mongo_handler.clone(),
             object_handler: object_storage_handler.clone(),
+            auth_handler: authz_handler.clone(),
         };
 
         let create_project_request = Request::new(services::CreateProjectRequest {

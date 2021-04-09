@@ -56,7 +56,9 @@ fn conf() {
         )
         .get_matches();
 
-    let conf_file = cli.value_of("config").unwrap_or("resources/local/config.yaml");
+    let conf_file = cli
+        .value_of("config")
+        .unwrap_or("resources/local/config.yaml");
 
     {
         SETTINGS
