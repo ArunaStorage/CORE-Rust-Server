@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use scienceobjectsdb_rust_api::sciobjectsdbapi::services::AddUserToProjectRequest;
 
 use super::common_models::{DatabaseModel, Label};
 
@@ -11,4 +12,5 @@ pub trait Database: Send + Sync {
         value: String,
     ) -> ResultWrapper<Option<Vec<T>>>;
     async fn store<'de, T: DatabaseModel<'de>>(&self, value: T) -> ResultWrapper<T>;
+    async fn add_user(&self, request: &AddUserToProjectRequest) -> ResultWrapper<()>;
 }

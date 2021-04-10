@@ -54,7 +54,7 @@ impl StorageHandler for S3Handler {
         dataset_id: String,
         object_id: String,
         filename: String,
-        index: Option<crate::database::common_models::IndexLocation>,
+        _index: Option<crate::database::common_models::IndexLocation>,
     ) -> ResultWrapper<crate::database::common_models::Location> {
         let object_key = format!("{}/{}/{}/{}", project_id, dataset_id, object_id, filename);
         let location = Location {

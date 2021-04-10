@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
-use scienceobjectsdb_rust_api::sciobjectsdbapi::services;
+use reqwest::get;
+use scienceobjectsdb_rust_api::sciobjectsdbapi::{models::Project, services};
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services::project_api_server::ProjectApi;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::{
     models::{self},
@@ -44,7 +45,29 @@ impl<T: Database> ProjectApi for ProjectServer<T> {
         &self,
         request: tonic::Request<services::AddUserToProjectRequest>,
     ) -> Result<tonic::Response<models::Project>, tonic::Status> {
-        todo!()
+        let add_user = request.get_ref();
+        self.auth_handler.authorize(request.metadata(), Resource::Project, Right::Write, add_user.project_id.clone()).await?;
+
+        match self.mongo_client.add_user(add_user).await{
+            Ok(_) => {}
+            Err(e) => {
+                log::error!("{:?}", e);
+                return Err(tonic::Status::internal("error while adding user"));
+            }
+        };
+
+        let project_option: Option<Vec<ProjectEntry>> = match self.mongo_client.find_by_key("id".to_string(), add_user.project_id.clone()).await {
+            Ok(value) => {value}
+            Err(e) => {
+                log::error!("{:?}", e);
+                return Err(tonic::Status::internal("error while adding user"));
+            }
+        };
+
+        let projects = project_option.unwrap();
+
+        let project_entry = projects[0].clone();
+        return Ok(tonic::Response::new(project_entry.to_proto_project()));
     }
 
     async fn get_project_datasets(
@@ -53,8 +76,6 @@ impl<T: Database> ProjectApi for ProjectServer<T> {
     ) -> Result<tonic::Response<services::DatasetList>, tonic::Status> {
         let get_request = request.get_ref();
         self.auth_handler.authorize(request.metadata(), Resource::Project, Right::Read, get_request.id.clone()).await?;
-
-        
 
         let datasets_option: Option<Vec<DatasetEntry>> = match self
             .mongo_client
@@ -91,7 +112,34 @@ impl<T: Database> ProjectApi for ProjectServer<T> {
         &self,
         request: tonic::Request<models::Empty>,
     ) -> Result<tonic::Response<services::ProjectList>, tonic::Status> {
-        todo!()
+        let get_request = request.get_ref();
+        let id = self.auth_handler.user_id(request.metadata()).await?;
+
+        let projects: Option<Vec<ProjectEntry>> = match self.mongo_client.find_by_key("users.user_id".to_string(), id).await{
+            Ok(value) => {value}
+            Err(e) => {
+                log::error!("{:?}", e);
+                return Err(tonic::Status::internal("could not read user projects"));
+            }
+        };
+
+        let entries = match projects {
+            Some(value) => {value}
+            None => {Vec::new()}
+        };
+
+        let mut proto_entries: Vec<Project> = Vec::new();
+
+        for entry in entries {
+            proto_entries.push(entry.to_proto_project())
+        }
+
+        let project_list = services::ProjectList{
+            projects: proto_entries,
+        };
+
+
+        Ok(tonic::Response::new(project_list))
     }
 
     async fn delete_project(

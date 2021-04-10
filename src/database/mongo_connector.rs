@@ -3,11 +3,7 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 use futures::stream::StreamExt;
-use mongodb::{
-    bson::{bson, Bson, Document},
-    options::{ClientOptions, FindOptions},
-    Client,
-};
+use mongodb::{Client, bson::{bson, Bson, Document, to_bson, to_document}, options::{ClientOptions, FindOptions, UpdateOptions}};
 use std::{env, sync::Arc};
 
 use std::{
@@ -18,11 +14,11 @@ use std::{
 use log::error;
 use mongodb::{bson::doc, options::FindOneOptions};
 
-use super::{
-    common_models::{DatabaseHandler, DatabaseModel},
-    database_model_wrapper::Database,
-};
+use super::{common_models::{DatabaseHandler, DatabaseModel, User, Right}, data_models::ProjectEntry, database_model_wrapper::Database};
 use crate::SETTINGS;
+
+use scienceobjectsdb_rust_api::sciobjectsdbapi::services;
+
 
 type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 type ResultWrapperSync<T> = std::result::Result<T, Box<dyn std::error::Error>>;
@@ -105,6 +101,23 @@ impl MongoHandler {
         return Ok(Some(model));
     }
 
+    pub fn to_model<'de, T: DatabaseModel<'de>>(&self, document: Option<Document>) -> std::result::Result<Option<T>, tonic::Status> {
+        let document = match document {
+            Some(value) => value,
+            None => return Ok(None),
+        };
+
+        let model = match T::new_from_document(document) {
+            Ok(value) => value,
+            Err(e) => {
+                error!("{:?}", e);
+                return Err(tonic::Status::internal("error unwrapping message from database"));
+            }
+        };
+
+        return Ok(Some(model))
+    }
+
     fn collection<'de, T: DatabaseModel<'de>>(&self) -> mongodb::Collection {
         self.mongo_client
             .database(&self.database_name)
@@ -169,6 +182,30 @@ impl Database for MongoHandler {
         };
 
         return Ok(inserted_model);
+    }
+
+    async fn add_user(&self, request: &services::AddUserToProjectRequest) -> ResultWrapper<()> {
+        let project_collection = ProjectEntry::get_model_name()?;
+        
+        let collection = self.collection::<ProjectEntry>();
+        let filter = doc! {
+            "id": request.project_id.clone(),
+        };
+
+        let user = User{
+            user_id: request.user_id.clone(),
+            rights: vec![Right::Read, Right::Write],
+        };
+
+        let insert = doc! {
+            "$addToSet": {"users": to_document(&user)?}
+        };
+
+        let options = UpdateOptions::default();
+
+        collection.update_one(filter, insert, options).await?;
+
+        return Ok(())
     }
 }
 
