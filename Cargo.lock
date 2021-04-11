@@ -1750,7 +1750,7 @@ dependencies = [
 [[package]]
 name = "scienceobjectsdb_rust_api"
 version = "0.1.0"
-source = "git+https://github.com/ScienceObjectsDB/rust-api?branch=main#0b438df477c2e0cfb1773e6197a15f9a5fd1bbbc"
+source = "git+https://github.com/ScienceObjectsDB/rust-api?branch=main#6124c7beb0f03cc6ccec9d4ccbd5969096ce6b1f"
 dependencies = [
  "prost",
  "prost-derive",

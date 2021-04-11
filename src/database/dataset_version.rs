@@ -23,7 +23,7 @@ impl DatasetVersion {
 
         let dataset_version = DatasetVersion {
             id: uuid.to_string(),
-            dataset_id: request.dataset_id,
+            dataset_id: request.dataset_id.clone(),
             description: "".to_string(),
             created: DateTime::from(timestamp),
             labels: to_labels(request.labels),

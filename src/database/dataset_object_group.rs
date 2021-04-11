@@ -66,8 +66,6 @@ impl DatasetObjectGroup {
         let object_group = models::ObjectGroup {
             id: self.id.clone(),
             name: self.name.clone(),
-            initialized_objects: self.objects_count,
-            uploaded_objects: self.objects_count,
             objects: objects,
             labels: to_proto_labels(&self.labels),
             dataset_id: self.dataset_id.clone(),

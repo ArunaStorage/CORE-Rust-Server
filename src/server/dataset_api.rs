@@ -5,15 +5,7 @@ use scienceobjectsdb_rust_api::sciobjectsdbapi::services;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services::dataset_service_server::DatasetService;
 use tonic::Response;
 
-use crate::{
-    auth::authenticator::AuthHandler,
-    database::{
-        common_models::{Resource, Right},
-        data_models::DatasetEntry,
-        database_model_wrapper::Database,
-        mongo_connector::MongoHandler,
-    },
-};
+use crate::{auth::authenticator::AuthHandler, database::{common_models::{Resource, Right}, data_models::{DatasetEntry, DatasetVersion}, database_model_wrapper::Database, mongo_connector::MongoHandler}};
 
 pub struct DatasetsServer<T: Database + 'static> {
     pub mongo_client: Arc<T>,
@@ -115,7 +107,34 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
         &self,
         request: tonic::Request<services::ReleaseDatasetVersionRequest>,
     ) -> Result<Response<models::DatasetVersion>, tonic::Status> {
-        todo!()
+        let relese_version_create = request.get_ref();
+        self.auth_handler.authorize(request.metadata(), Resource::Dataset, Right::Write, relese_version_create.dataset_id.clone()).await?;
+
+        let model = match DatasetVersion::new_from_proto_create(request.into_inner()) {
+            Ok(value) => {value}
+            Err(e) => {
+                log::error!("{:?}", e);
+                return Err(tonic::Status::internal("Could not create dataset version"));
+            }
+        };
+
+        let version = match self.mongo_client.store(model).await {
+            Ok(value) => {value}
+            Err(e) => {
+                log::error!("{:?}", e);
+                return Err(tonic::Status::internal("Could not create dataset version"));
+            }
+        };
+
+        let version_proto = match version.to_proto() {
+            Ok(value) => {value}
+            Err(e) => {
+                log::error!("{:?}", e);
+                return Err(tonic::Status::internal("Could not create dataset version"));
+            }
+        };
+
+        return Ok(Response::new(version_proto));
     }
 
     async fn dataset_version_object_groups(
