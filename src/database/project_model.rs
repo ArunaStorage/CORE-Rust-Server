@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, vec};
 
 use scienceobjectsdb_rust_api::sciobjectsdbapi::{
     models,
@@ -10,13 +10,19 @@ use super::{common_models::*, data_models::ProjectEntry, mongo_connector::MongoH
 type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 impl ProjectEntry {
-    pub fn new_from_proto_create(request: services::CreateProjectRequest) -> ResultWrapper<Self> {
+    pub fn new_from_proto_create(request: services::CreateProjectRequest, user_id: String) -> ResultWrapper<Self> {
+        let user = User{
+            user_id: user_id,
+            rights: vec![Right::Write, Right::Read]
+        };
+        
         let uuid = uuid::Uuid::new_v4();
         let project = ProjectEntry {
             id: uuid.to_string(),
             name: request.name,
             description: request.description,
             metadata: to_metadata(request.metadata.to_vec()),
+            users: vec![user],
             ..Default::default()
         };
 

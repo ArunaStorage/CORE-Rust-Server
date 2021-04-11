@@ -124,11 +124,28 @@ mod server_test {
             ..Default::default()
         });
 
+        let create_project_request_2 = Request::new(services::CreateProjectRequest {
+            name: "testproject".to_string(),
+            description: "Some description".to_string(),
+            ..Default::default()
+        });
+
         let project = project_endpoints
             .create_project(create_project_request)
             .await
             .unwrap()
             .into_inner();
+
+        let _project_2 = project_endpoints
+            .create_project(create_project_request_2)
+            .await
+            .unwrap()
+            .into_inner();
+
+        let user_projects = project_endpoints.get_user_projects(Request::new(models::Empty::default())).await.unwrap().into_inner();
+        if user_projects.projects.len() != 2 {
+            panic!("wrong number of projects found for user in test")
+        }
 
         let create_dataset_request = Request::new(services::CreateDatasetRequest {
             project_id: project.id,

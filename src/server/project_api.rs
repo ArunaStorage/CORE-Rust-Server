@@ -22,7 +22,9 @@ impl<T: Database> ProjectApi for ProjectServer<T> {
         &self,
         request: tonic::Request<services::CreateProjectRequest>,
     ) -> Result<tonic::Response<models::Project>, tonic::Status> {
-        let project_model = match ProjectEntry::new_from_proto_create(request.into_inner()) {
+        let user_id = self.auth_handler.user_id(request.metadata()).await?;
+        
+        let project_model = match ProjectEntry::new_from_proto_create(request.into_inner(), user_id) {
             Ok(project) => project,
             Err(e) => {
                 log::error!("{:?}", e);
