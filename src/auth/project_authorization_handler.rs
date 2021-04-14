@@ -144,7 +144,7 @@ impl<T: Database> AuthHandler for ProjectAuthzHandler<T> {
         };
 
         let project_id = match project_id_result {
-            Ok(id) => {id}
+            Ok(id) => id,
             Err(e) => {
                 log::error!("{:?}", e);
                 return Err(tonic::Status::internal(
@@ -156,14 +156,15 @@ impl<T: Database> AuthHandler for ProjectAuthzHandler<T> {
         let project_option: Option<Vec<ProjectEntry>> = match self
             .database_handler
             .find_by_key("id".to_string(), project_id)
-            .await {
-                Ok(value) => {value}
-                Err(_) => {
-                    return Err(tonic::Status::internal(
-                        "could not authorize requested action",
-                    ));
-                }
-            };
+            .await
+        {
+            Ok(value) => value,
+            Err(_) => {
+                return Err(tonic::Status::internal(
+                    "could not authorize requested action",
+                ));
+            }
+        };
         let project = match project_option {
             Some(value) => value[0].clone(),
             None => {
@@ -190,7 +191,10 @@ impl<T: Database> AuthHandler for ProjectAuthzHandler<T> {
         ));
     }
 
-    async fn user_id(&self, metadata: &tonic::metadata::MetadataMap) -> std::result::Result<String, tonic::Status> {
+    async fn user_id(
+        &self,
+        metadata: &tonic::metadata::MetadataMap,
+    ) -> std::result::Result<String, tonic::Status> {
         let access_token = match metadata.get("AccessToken") {
             Some(value) => value.to_str().unwrap(),
             None => {
@@ -203,15 +207,16 @@ impl<T: Database> AuthHandler for ProjectAuthzHandler<T> {
         let user_id = match self
             .oauth2_handler
             .parse_user_id_from_token(access_token.to_string())
-            .await{
-                Ok(value) => {value}
-                Err(e) => {
-                    log::error!("{:?}", e);
-                    return Err(tonic::Status::internal(
-                        "could not get user_id_from access token",
-                    ));
-                }
-            };
+            .await
+        {
+            Ok(value) => value,
+            Err(e) => {
+                log::error!("{:?}", e);
+                return Err(tonic::Status::internal(
+                    "could not get user_id_from access token",
+                ));
+            }
+        };
         return Ok(user_id);
     }
 }

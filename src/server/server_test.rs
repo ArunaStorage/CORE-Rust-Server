@@ -142,7 +142,11 @@ mod server_test {
             .unwrap()
             .into_inner();
 
-        let user_projects = project_endpoints.get_user_projects(Request::new(models::Empty::default())).await.unwrap().into_inner();
+        let user_projects = project_endpoints
+            .get_user_projects(Request::new(models::Empty::default()))
+            .await
+            .unwrap()
+            .into_inner();
         if user_projects.projects.len() != 2 {
             panic!("wrong number of projects found for user in test")
         }

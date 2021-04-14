@@ -3,7 +3,11 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 use futures::stream::StreamExt;
-use mongodb::{Client, bson::{bson, Bson, Document, to_bson, to_document}, options::{ClientOptions, FindOptions, UpdateOptions}};
+use mongodb::{
+    bson::{bson, to_bson, to_document, Bson, Document},
+    options::{ClientOptions, FindOptions, UpdateOptions},
+    Client,
+};
 use std::{env, sync::Arc};
 
 use std::{
@@ -14,11 +18,14 @@ use std::{
 use log::error;
 use mongodb::{bson::doc, options::FindOneOptions};
 
-use super::{common_models::{DatabaseHandler, DatabaseModel, User, Right}, data_models::ProjectEntry, database_model_wrapper::Database};
+use super::{
+    common_models::{DatabaseHandler, DatabaseModel, Right, User},
+    data_models::{DatasetObjectGroup, ProjectEntry},
+    database_model_wrapper::Database,
+};
 use crate::SETTINGS;
 
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services;
-
 
 type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 type ResultWrapperSync<T> = std::result::Result<T, Box<dyn std::error::Error>>;
@@ -101,7 +108,10 @@ impl MongoHandler {
         return Ok(Some(model));
     }
 
-    pub fn to_model<'de, T: DatabaseModel<'de>>(&self, document: Option<Document>) -> std::result::Result<Option<T>, tonic::Status> {
+    pub fn to_model<'de, T: DatabaseModel<'de>>(
+        &self,
+        document: Option<Document>,
+    ) -> std::result::Result<Option<T>, tonic::Status> {
         let document = match document {
             Some(value) => value,
             None => return Ok(None),
@@ -111,11 +121,13 @@ impl MongoHandler {
             Ok(value) => value,
             Err(e) => {
                 error!("{:?}", e);
-                return Err(tonic::Status::internal("error unwrapping message from database"));
+                return Err(tonic::Status::internal(
+                    "error unwrapping message from database",
+                ));
             }
         };
 
-        return Ok(Some(model))
+        return Ok(Some(model));
     }
 
     fn collection<'de, T: DatabaseModel<'de>>(&self) -> mongodb::Collection {
@@ -186,13 +198,13 @@ impl Database for MongoHandler {
 
     async fn add_user(&self, request: &services::AddUserToProjectRequest) -> ResultWrapper<()> {
         let project_collection = ProjectEntry::get_model_name()?;
-        
+
         let collection = self.collection::<ProjectEntry>();
         let filter = doc! {
             "id": request.project_id.clone(),
         };
 
-        let user = User{
+        let user = User {
             user_id: request.user_id.clone(),
             rights: vec![Right::Read, Right::Write],
         };
@@ -205,7 +217,64 @@ impl Database for MongoHandler {
 
         collection.update_one(filter, insert, options).await?;
 
-        return Ok(())
+        return Ok(());
+    }
+
+    async fn find_object(&self, id: String) -> ResultWrapper<super::data_models::DatasetObject> {
+        let filter = doc! {
+            "objects.id": id
+        };
+
+        let projection = doc! {
+            "objects.id": 1,
+        };
+
+        let options = FindOneOptions::builder().projection(projection).build();
+
+        let csr = self
+            .collection::<DatasetObjectGroup>()
+            .find_one(filter, options)
+            .await?;
+
+        let object = match csr {
+            Some(value) => DatasetObjectGroup::new_from_document(value),
+            None => {
+                return Err::<
+                    super::data_models::DatasetObject,
+                    Box<dyn std::error::Error + Send + Sync>,
+                >(Box::new(SimpleError::new("could not find object")));
+            }
+        }?;
+
+        return Ok(object.objects[0].clone());
+    }
+
+    async fn update_field<'de, T: DatabaseModel<'de>>(
+        &self,
+        find_key: String,
+        find_value: String,
+        update_field: String,
+        update_value: String,
+    ) -> ResultWrapper<i64> {
+        let filter = doc! {
+            find_key: find_value,
+        };
+
+        let update = doc! {
+            update_field: update_value,
+        };
+
+        match self
+            .collection::<T>()
+            .update_one(filter, update, None)
+            .await
+        {
+            Ok(value) => return Ok(value.modified_count),
+            Err(e) => {
+                log::error!("{:?}", e);
+                return Err(Box::new(SimpleError::new("could not update fields")));
+            }
+        };
     }
 }
 

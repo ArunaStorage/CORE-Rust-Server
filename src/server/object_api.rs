@@ -5,7 +5,14 @@ use scienceobjectsdb_rust_api::sciobjectsdbapi::services;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services::dataset_objects_service_server::DatasetObjectsService;
 use tonic::Response;
 
-use crate::{auth::authenticator::AuthHandler, database::{common_models::{Resource, Right}, database_model_wrapper::Database, mongo_connector::MongoHandler}};
+use crate::{
+    auth::authenticator::AuthHandler,
+    database::{
+        common_models::{Resource, Right},
+        database_model_wrapper::Database,
+        mongo_connector::MongoHandler,
+    },
+};
 use crate::{
     database::common_models::DatabaseHandler, database::data_models::DatasetObjectGroup,
     objectstorage::objectstorage::StorageHandler,
@@ -31,8 +38,14 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
         request: tonic::Request<services::CreateObjectGroupRequest>,
     ) -> Result<Response<models::ObjectGroup>, tonic::Status> {
         let create_request = request.get_ref();
-        self.auth_handler.authorize(request.metadata(), Resource::Dataset, Right::Write, create_request.dataset_id.clone()).await?;
-
+        self.auth_handler
+            .authorize(
+                request.metadata(),
+                Resource::Dataset,
+                Right::Write,
+                create_request.dataset_id.clone(),
+            )
+            .await?;
 
         let object_group = match DatasetObjectGroup::new_from_proto_create(
             request.into_inner(),
@@ -64,8 +77,14 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
         request: tonic::Request<models::Id>,
     ) -> Result<Response<models::ObjectGroup>, tonic::Status> {
         let get_request = request.get_ref();
-        self.auth_handler.authorize(request.metadata(), Resource::ObjectGroup, Right::Read, get_request.id.clone()).await?;
-
+        self.auth_handler
+            .authorize(
+                request.metadata(),
+                Resource::ObjectGroup,
+                Right::Read,
+                get_request.id.clone(),
+            )
+            .await?;
 
         let id = request.into_inner().id;
 

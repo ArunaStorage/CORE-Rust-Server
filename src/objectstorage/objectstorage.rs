@@ -1,6 +1,11 @@
 use async_trait::async_trait;
+use scienceobjectsdb_rust_api::sciobjectsdbapi::services::CompletedParts;
+use tonic::Response;
 
-use crate::database::common_models::{IndexLocation, Location};
+use crate::database::{
+    common_models::{IndexLocation, Location},
+    data_models::DatasetObject,
+};
 
 type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 #[async_trait]
@@ -15,5 +20,21 @@ pub trait StorageHandler: Send + Sync {
     ) -> ResultWrapper<Location>;
     async fn create_download_link(&self, location: Location) -> ResultWrapper<String>;
     async fn create_upload_link(&self, location: Location) -> ResultWrapper<String>;
+    async fn init_multipart_upload(
+        &self,
+        location: DatasetObject,
+    ) -> std::result::Result<String, tonic::Status>;
+    async fn upload_multipart_part_link(
+        &self,
+        location: Location,
+        upload_id: String,
+        upload_part: i64,
+    ) -> std::result::Result<String, tonic::Status>;
+    async fn finish_multipart_upload(
+        &self,
+        location: &Location,
+        objects: &Vec<CompletedParts>,
+        upload_id: String,
+    ) -> Result<(), tonic::Status>;
     fn get_bucket(&self) -> String;
 }
