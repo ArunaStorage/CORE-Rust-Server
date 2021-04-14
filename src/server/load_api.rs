@@ -1,8 +1,11 @@
 use crate::{auth::authenticator::AuthHandler, database::database_model_wrapper::Database};
 use std::sync::Arc;
 
-use scienceobjectsdb_rust_api::sciobjectsdbapi::{models::{Empty, Object}, services::object_load_server::ObjectLoad};
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services::CreateLinkResponse;
+use scienceobjectsdb_rust_api::sciobjectsdbapi::{
+    models::{Empty, Object},
+    services::object_load_server::ObjectLoad,
+};
 
 use scienceobjectsdb_rust_api::sciobjectsdbapi::models;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services;
@@ -184,7 +187,10 @@ impl<T: Database> ObjectLoad for LoadServer<T> {
             }
         };
 
-        let upload_id = self.object_handler.init_multipart_upload(object.clone()).await?;
+        let upload_id = self
+            .object_handler
+            .init_multipart_upload(object.clone())
+            .await?;
         let updated_fields_count = match self
             .mongo_client
             .update_field::<DatasetObjectGroup>(
@@ -203,11 +209,11 @@ impl<T: Database> ObjectLoad for LoadServer<T> {
         };
 
         if updated_fields_count != 1 {
-                log::error!("wrong number of updated fields found on upload_id update after multipart upload init");
-                return Err(tonic::Status::internal("could not init dataset load"));
+            log::error!("wrong number of updated fields found on upload_id update after multipart upload init");
+            return Err(tonic::Status::internal("could not init dataset load"));
         }
 
-        let object = match self.mongo_client.find_object(request.into_inner().id).await{
+        let object = match self.mongo_client.find_object(request.into_inner().id).await {
             Ok(value) => value,
             Err(e) => {
                 log::error!("{:?}", e);
@@ -215,7 +221,7 @@ impl<T: Database> ObjectLoad for LoadServer<T> {
             }
         };
 
-        return Ok(Response::new(object.to_proto_object()))
+        return Ok(Response::new(object.to_proto_object()));
     }
 
     async fn get_multipart_upload_link(
@@ -224,15 +230,19 @@ impl<T: Database> ObjectLoad for LoadServer<T> {
     ) -> Result<Response<CreateLinkResponse>, tonic::Status> {
         let upload_request = request.get_ref();
         self.auth_handler
-        .authorize(
-            request.metadata(),
-            Resource::Object,
-            Right::Read,
-            upload_request.object_id.clone(),
-        )
-        .await?;
+            .authorize(
+                request.metadata(),
+                Resource::Object,
+                Right::Read,
+                upload_request.object_id.clone(),
+            )
+            .await?;
 
-        let object = match self.mongo_client.find_object(upload_request.object_id.clone()).await{
+        let object = match self
+            .mongo_client
+            .find_object(upload_request.object_id.clone())
+            .await
+        {
             Ok(value) => value,
             Err(e) => {
                 log::error!("{:?}", e);
@@ -240,7 +250,15 @@ impl<T: Database> ObjectLoad for LoadServer<T> {
             }
         };
 
-        let upload_url = match self.object_handler.upload_multipart_part_link(object.location.clone(), object.upload_id.clone(), upload_request.upload_part).await{
+        let upload_url = match self
+            .object_handler
+            .upload_multipart_part_link(
+                object.location.clone(),
+                object.upload_id.clone(),
+                upload_request.upload_part,
+            )
+            .await
+        {
             Ok(value) => value,
             Err(e) => {
                 log::error!("{:?}", e);
@@ -248,12 +266,12 @@ impl<T: Database> ObjectLoad for LoadServer<T> {
             }
         };
 
-        let upload_link_response = CreateLinkResponse{
+        let upload_link_response = CreateLinkResponse {
             object: Some(object.to_proto_object()),
             upload_link: upload_url,
         };
 
-        return Ok(Response::new(upload_link_response))
+        return Ok(Response::new(upload_link_response));
     }
 
     async fn complete_multipart_upload(
@@ -262,15 +280,19 @@ impl<T: Database> ObjectLoad for LoadServer<T> {
     ) -> Result<Response<models::Empty>, tonic::Status> {
         let upload_request = request.get_ref();
         self.auth_handler
-        .authorize(
-            request.metadata(),
-            Resource::Object,
-            Right::Read,
-            upload_request.object_id.clone(),
-        )
-        .await?;
+            .authorize(
+                request.metadata(),
+                Resource::Object,
+                Right::Read,
+                upload_request.object_id.clone(),
+            )
+            .await?;
 
-        let object = match self.mongo_client.find_object(upload_request.object_id.clone()).await{
+        let object = match self
+            .mongo_client
+            .find_object(upload_request.object_id.clone())
+            .await
+        {
             Ok(value) => value,
             Err(e) => {
                 log::error!("{:?}", e);
@@ -278,8 +300,10 @@ impl<T: Database> ObjectLoad for LoadServer<T> {
             }
         };
 
-        self.object_handler.finish_multipart_upload(&object.location, &upload_request.parts, object.upload_id).await?;
+        self.object_handler
+            .finish_multipart_upload(&object.location, &upload_request.parts, object.upload_id)
+            .await?;
 
-        return Ok(Response::new(Empty{}));
+        return Ok(Response::new(Empty {}));
     }
 }

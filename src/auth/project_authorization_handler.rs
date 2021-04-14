@@ -9,12 +9,19 @@ use crate::database::{
 use super::{authenticator::AuthHandler, oauth2_handler};
 use async_trait::async_trait;
 
+
+
+///Kind of token that has been found in the metadata
 enum TokenType {
     OAuth2,
 }
 
 type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
+
+/// Authorizes access to resources based on user right on project level
+/// It will resolve each resource to its project. Based on that it will grant access or respond with an
+/// grpc error.
 pub struct ProjectAuthzHandler<T: Database> {
     oauth2_handler: oauth2_handler::OAuth2Handler,
     database_handler: Arc<T>,

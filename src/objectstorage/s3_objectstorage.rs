@@ -23,6 +23,14 @@ use crate::database::{
 type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 type ResultWrapperSync<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
+
+/// Handles S3-compatible object storage backends for storing data
+/// Access is entirely provided via presigned URLs
+/// For large upload (>3GB) it is necessary to use multipart uploads, they are provided via
+/// presigned urls as well. The stored object metadata has an upload_id field that stores
+/// the associated upload_id. Part number and etag of each individual upload have to be provided during finish upload
+/// TODO: Update object status after finished upload.
+/// TODO: Check if object has already been uploaded, an upload should not never occur with the same key twice to avoid consistency problems
 pub struct S3Handler {
     client: S3Client,
     bucket: String,

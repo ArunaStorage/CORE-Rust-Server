@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use reqwest::get;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services::project_api_server::ProjectApi;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::{models::Project, services};
 use scienceobjectsdb_rust_api::sciobjectsdbapi::{
@@ -18,6 +17,8 @@ use crate::{
     },
 };
 
+/// Handles the project related API endpoints
+/// The individual functions implemented are defined and documented in the API documentation
 pub struct ProjectServer<T: Database + 'static> {
     pub mongo_client: Arc<T>,
     pub auth_handler: Arc<dyn AuthHandler>,

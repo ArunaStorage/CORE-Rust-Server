@@ -7,6 +7,11 @@ use super::common_models::{
 
 type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
+
+/// Internal models that are stored in the MongoDB
+/// Each model implements the DatabaseModel trait. In addition each provides functions to create a new entry from an API create request and to convert
+/// a model into its corresponding protocol buffer representation for the API.
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct DatasetEntry {
     pub id: String,

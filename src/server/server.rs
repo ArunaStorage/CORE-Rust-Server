@@ -23,6 +23,7 @@ use crate::SETTINGS;
 
 type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
+/// Starts the grpc server. The configuration is read from the config file handed over at startup
 pub async fn start_server() -> ResultWrapper<()> {
     let s3_endpoint = SETTINGS
         .read()
