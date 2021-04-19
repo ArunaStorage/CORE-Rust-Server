@@ -8,7 +8,9 @@ COPY . .
 
 RUN cargo build --release
 
-FROM debian:buster-slim
+
+
+FROM debian:bullseye-slim
 
 RUN apt-get -y update && apt-get -y upgrade && apt-get install -y libssl-dev
 
