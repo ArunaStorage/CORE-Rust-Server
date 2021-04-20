@@ -1,5 +1,3 @@
-use std::{error::Error, fmt};
-
 use reqwest::Client;
 use serde_json::Value;
 

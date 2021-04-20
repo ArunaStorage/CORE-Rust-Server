@@ -1,12 +1,12 @@
 use serde::{Deserialize, Serialize};
-use std::{sync::Arc, vec};
+use std::vec;
 
 use scienceobjectsdb_rust_api::sciobjectsdbapi::{
     models,
-    services::{self, project_api_client::ProjectApiClient},
+    services::{self},
 };
 
-use super::{common_models::*, mongo_connector::MongoHandler};
+use super::common_models::*;
 
 type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 

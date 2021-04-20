@@ -80,7 +80,7 @@ mod server_test {
             .get_str("Storage.Endpoint")
             .unwrap_or("localhost".to_string());
         let s3_bucket = SETTINGS.read().unwrap().get_str("Storage.Bucket").unwrap();
-        let database_name = SETTINGS
+        let _database_name = SETTINGS
             .read()
             .unwrap()
             .get_str("Database.Mongo.Database")

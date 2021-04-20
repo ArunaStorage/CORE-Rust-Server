@@ -5,7 +5,15 @@ use scienceobjectsdb_rust_api::sciobjectsdbapi::services;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services::dataset_service_server::DatasetService;
 use tonic::Response;
 
-use crate::{auth::authenticator::AuthHandler, database::{common_models::{Resource, Right}, database_model_wrapper::Database, dataset_model::DatasetEntry, dataset_version::DatasetVersion}};
+use crate::{
+    auth::authenticator::AuthHandler,
+    database::{
+        common_models::{Resource, Right},
+        database::Database,
+        dataset_model::DatasetEntry,
+        dataset_version::DatasetVersion,
+    },
+};
 
 pub struct DatasetsServer<T: Database + 'static> {
     pub mongo_client: Arc<T>,
@@ -91,28 +99,28 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
 
     async fn dataset_versions(
         &self,
-        request: tonic::Request<models::Id>,
+        _request: tonic::Request<models::Id>,
     ) -> Result<Response<services::DatasetVersionList>, tonic::Status> {
         todo!()
     }
 
     async fn dataset_object_groups(
         &self,
-        request: tonic::Request<models::Id>,
+        _request: tonic::Request<models::Id>,
     ) -> Result<Response<services::ObjectGroupList>, tonic::Status> {
         todo!()
     }
 
     async fn update_dataset_field(
         &self,
-        request: tonic::Request<models::UpdateFieldsRequest>,
+        _request: tonic::Request<models::UpdateFieldsRequest>,
     ) -> Result<Response<models::Dataset>, tonic::Status> {
         todo!()
     }
 
     async fn delete_dataset(
         &self,
-        request: tonic::Request<models::Id>,
+        _request: tonic::Request<models::Id>,
     ) -> Result<Response<models::Empty>, tonic::Status> {
         todo!()
     }
@@ -160,7 +168,7 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
 
     async fn dataset_version_object_groups(
         &self,
-        request: tonic::Request<models::Id>,
+        _request: tonic::Request<models::Id>,
     ) -> Result<Response<services::ObjectGroupList>, tonic::Status> {
         todo!()
     }

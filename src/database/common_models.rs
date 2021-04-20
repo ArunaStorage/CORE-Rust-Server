@@ -4,8 +4,6 @@ use serde::{Deserialize, Serialize};
 
 use scienceobjectsdb_rust_api::sciobjectsdbapi::models;
 
-use crate::objectstorage::objectstorage::StorageHandler;
-
 use super::{dataset_model::DatasetEntry, dataset_object_group::DatasetObjectGroup};
 
 type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;

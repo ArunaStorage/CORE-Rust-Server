@@ -4,7 +4,7 @@ use async_trait::async_trait;
 
 use rusoto_core::{
     credential::{DefaultCredentialsProvider, ProvideAwsCredentials},
-    Client, Region,
+    Region,
 };
 use rusoto_s3::{
     util::{PreSignedRequest, PreSignedRequestOption},
@@ -12,13 +12,14 @@ use rusoto_s3::{
     GetObjectRequest, PutObjectRequest, S3Client, UploadPartRequest, S3,
 };
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services::CompletedParts;
-use tonic::Response;
 
 use super::objectstorage::StorageHandler;
-use crate::database::{common_models::{IndexLocation, Location, LocationType}, dataset_object_group::DatasetObject};
+use crate::database::{
+    common_models::{IndexLocation, Location, LocationType},
+    dataset_object_group::DatasetObject,
+};
 
 type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
-type ResultWrapperSync<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 /// Handles S3-compatible object storage backends for storing data
 /// Access is entirely provided via presigned URLs
@@ -226,7 +227,7 @@ impl StorageHandler for S3Handler {
             ..Default::default()
         };
 
-        let completed_reponse = match self
+        let _completed_reponse = match self
             .client
             .complete_multipart_upload(completion_request)
             .await
@@ -247,13 +248,11 @@ mod tests {
     use std::{env, iter::FromIterator, path::PathBuf, sync::Once};
 
     use config::File;
-    use rusoto_s3::CompletedPart;
-    use scienceobjectsdb_rust_api::sciobjectsdbapi::{
-        models::Origin,
-        services::{self, CreateObjectRequest},
-    };
+    use scienceobjectsdb_rust_api::sciobjectsdbapi::services::{self, CreateObjectRequest};
 
-    use crate::{database::dataset_object_group::DatasetObject, objectstorage::objectstorage::StorageHandler};
+    use crate::{
+        database::dataset_object_group::DatasetObject, objectstorage::objectstorage::StorageHandler,
+    };
 
     use super::S3Handler;
 
@@ -406,14 +405,14 @@ mod tests {
         };
 
         let mut data_1_vec = Vec::new();
-        for x in 0..10000000 {
+        for _x in 0..10000000 {
             data_1_vec.push("ABC");
         }
 
         let data_1 = String::from_iter(data_1_vec);
 
         let mut data_2_vec = Vec::new();
-        for x in 0..5000 {
+        for _x in 0..5000 {
             data_2_vec.push("ABC");
         }
 

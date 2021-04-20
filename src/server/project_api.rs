@@ -8,7 +8,15 @@ use scienceobjectsdb_rust_api::sciobjectsdbapi::{
 };
 use tonic::Response;
 
-use crate::{auth::authenticator::AuthHandler, database::{common_models::{Resource, Right}, database_model_wrapper::Database, dataset_model::DatasetEntry, project_model::ProjectEntry}};
+use crate::{
+    auth::authenticator::AuthHandler,
+    database::{
+        common_models::{Resource, Right},
+        database::Database,
+        dataset_model::DatasetEntry,
+        project_model::ProjectEntry,
+    },
+};
 
 /// Handles the project related API endpoints
 /// The individual functions implemented are defined and documented in the API documentation
@@ -134,7 +142,7 @@ impl<T: Database> ProjectApi for ProjectServer<T> {
         &self,
         request: tonic::Request<models::Empty>,
     ) -> Result<tonic::Response<services::ProjectList>, tonic::Status> {
-        let get_request = request.get_ref();
+        let _get_request = request.get_ref();
         let id = self.auth_handler.user_id(request.metadata()).await?;
 
         let projects: Option<Vec<ProjectEntry>> = match self
@@ -169,7 +177,7 @@ impl<T: Database> ProjectApi for ProjectServer<T> {
 
     async fn delete_project(
         &self,
-        request: tonic::Request<models::Id>,
+        _request: tonic::Request<models::Id>,
     ) -> Result<tonic::Response<models::Empty>, tonic::Status> {
         todo!()
     }

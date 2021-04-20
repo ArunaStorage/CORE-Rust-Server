@@ -1,4 +1,4 @@
-use crate::{auth::authenticator::AuthHandler, database::database_model_wrapper::Database};
+use crate::{auth::authenticator::AuthHandler, database::database::Database};
 use std::sync::Arc;
 
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services::CreateLinkResponse;
@@ -13,7 +13,7 @@ use tonic::Response;
 
 use crate::database::{
     common_models::{Resource, Right},
-    dataset_object_group::DatasetObjectGroup
+    dataset_object_group::DatasetObjectGroup,
 };
 
 use crate::objectstorage::objectstorage::StorageHandler;

@@ -1,6 +1,9 @@
 use std::{error::Error, fmt, sync::Arc};
 
-use crate::database::{database_model_wrapper::Database, dataset_model::DatasetEntry, dataset_object_group::DatasetObjectGroup, dataset_version::DatasetVersion, project_model::ProjectEntry};
+use crate::database::{
+    database::Database, dataset_model::DatasetEntry, dataset_object_group::DatasetObjectGroup,
+    dataset_version::DatasetVersion, project_model::ProjectEntry,
+};
 
 use super::{authenticator::AuthHandler, oauth2_handler};
 use async_trait::async_trait;

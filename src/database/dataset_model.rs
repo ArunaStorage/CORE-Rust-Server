@@ -4,8 +4,6 @@ use serde::{Deserialize, Serialize};
 use chrono::prelude::*;
 use mongodb::bson::DateTime;
 
-use super::mongo_connector::MongoHandler;
-
 use super::common_models::{
     to_labels, to_metadata, to_proto_labels, to_proto_metadata, DatabaseModel, Label, Metadata,
     Status,

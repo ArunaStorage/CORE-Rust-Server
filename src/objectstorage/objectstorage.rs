@@ -1,8 +1,10 @@
 use async_trait::async_trait;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services::CompletedParts;
-use tonic::Response;
 
-use crate::database::{common_models::{IndexLocation, Location}, dataset_object_group::DatasetObject};
+use crate::database::{
+    common_models::{IndexLocation, Location},
+    dataset_object_group::DatasetObject,
+};
 
 type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 #[async_trait]

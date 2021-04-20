@@ -5,10 +5,14 @@ use scienceobjectsdb_rust_api::sciobjectsdbapi::services;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services::dataset_objects_service_server::DatasetObjectsService;
 use tonic::Response;
 
-use crate::{auth::authenticator::AuthHandler, database::{common_models::{Resource, Right}, database_model_wrapper::Database, dataset_object_group::DatasetObjectGroup, mongo_connector::MongoHandler}};
+use crate::objectstorage::objectstorage::StorageHandler;
 use crate::{
-    database::common_models::DatabaseHandler,
-    objectstorage::objectstorage::StorageHandler,
+    auth::authenticator::AuthHandler,
+    database::{
+        common_models::{Resource, Right},
+        database::Database,
+        dataset_object_group::DatasetObjectGroup,
+    },
 };
 
 pub struct ObjectServer<T: Database + 'static> {
@@ -21,7 +25,7 @@ pub struct ObjectServer<T: Database + 'static> {
 impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
     async fn create_object_heritage(
         &self,
-        request: tonic::Request<services::CreateObjectHeritageRequest>,
+        _request: tonic::Request<services::CreateObjectHeritageRequest>,
     ) -> Result<Response<models::ObjectHeritage>, tonic::Status> {
         todo!()
     }
@@ -110,7 +114,7 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
 
     async fn finish_object_upload(
         &self,
-        request: tonic::Request<models::Id>,
+        _request: tonic::Request<models::Id>,
     ) -> Result<Response<models::Empty>, tonic::Status> {
         todo!()
     }

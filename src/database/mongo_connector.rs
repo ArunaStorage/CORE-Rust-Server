@@ -1,14 +1,12 @@
 use async_trait::async_trait;
 
-use serde::{Deserialize, Serialize};
-
 use futures::stream::StreamExt;
 use mongodb::{
-    bson::{bson, to_bson, to_document, Bson, Document},
+    bson::{to_document, Bson, Document},
     options::{ClientOptions, FindOptions, UpdateOptions},
     Client,
 };
-use std::{env, sync::Arc};
+use std::env;
 
 use std::{
     error::Error,
@@ -19,8 +17,8 @@ use log::error;
 use mongodb::{bson::doc, options::FindOneOptions};
 
 use super::{
-    common_models::{DatabaseHandler, DatabaseModel, Right, User},
-    database_model_wrapper::Database,
+    common_models::{DatabaseModel, Right, User},
+    database::Database,
     dataset_object_group::DatasetObject,
     dataset_object_group::DatasetObjectGroup,
     project_model::ProjectEntry,
@@ -30,7 +28,6 @@ use crate::SETTINGS;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services;
 
 type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
-type ResultWrapperSync<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 pub struct MongoHandler {
     database_name: String,
@@ -199,8 +196,6 @@ impl Database for MongoHandler {
     }
 
     async fn add_user(&self, request: &services::AddUserToProjectRequest) -> ResultWrapper<()> {
-        let project_collection = ProjectEntry::get_model_name()?;
-
         let collection = self.collection::<ProjectEntry>();
         let filter = doc! {
             "id": request.project_id.clone(),

@@ -10,8 +10,7 @@ use super::{
         to_labels, to_metadata, to_proto_labels, to_proto_metadata, DatabaseModel, Label, Location,
         Metadata, Origin, Status, Version,
     },
-    database_model_wrapper::Database,
-    mongo_connector::MongoHandler,
+    database::Database,
 };
 
 use super::common_models;
@@ -42,7 +41,7 @@ impl DatasetObjectGroup {
     pub fn new_from_proto_create<T: Database>(
         request: services::CreateObjectGroupRequest,
         bucket: String,
-        handler: Arc<T>,
+        _handler: Arc<T>,
     ) -> ResultWrapper<Self> {
         let uuid = uuid::Uuid::new_v4();
 
