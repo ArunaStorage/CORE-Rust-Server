@@ -6,7 +6,7 @@ use scienceobjectsdb_rust_api::sciobjectsdbapi::models;
 
 use crate::objectstorage::objectstorage::StorageHandler;
 
-use super::data_models::{DatasetEntry, DatasetObjectGroup};
+use super::{dataset_model::DatasetEntry, dataset_object_group::DatasetObjectGroup};
 
 type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 type ResultWrapperSync<T> = std::result::Result<T, Box<dyn std::error::Error>>;

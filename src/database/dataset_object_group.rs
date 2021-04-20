@@ -10,14 +10,33 @@ use super::{
         to_labels, to_metadata, to_proto_labels, to_proto_metadata, DatabaseModel, Label, Location,
         Metadata, Origin, Status, Version,
     },
-    data_models::{DatasetEntry, DatasetObject, DatasetObjectGroup},
     database_model_wrapper::Database,
     mongo_connector::MongoHandler,
 };
 
 use super::common_models;
 
-type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct DatasetObjectGroup {
+    pub id: String,
+    pub name: String,
+    pub version: Version,
+    pub objects_count: i64,
+    pub objects: Vec<DatasetObject>,
+    pub labels: Vec<Label>,
+    pub object_heritage_id: String,
+    pub dataset_id: String,
+    pub status: Status,
+    pub metadata: Vec<Metadata>,
+}
+
+impl DatabaseModel<'_> for DatasetObjectGroup {
+    fn get_model_name() -> ResultWrapper<String> {
+        Ok("ObjectGroup".to_string())
+    }
+}
 
 impl DatasetObjectGroup {
     pub fn new_from_proto_create<T: Database>(
@@ -75,6 +94,25 @@ impl DatasetObjectGroup {
         };
 
         return object_group;
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct DatasetObject {
+    pub id: String,
+    pub filename: String,
+    pub filetype: String,
+    pub origin: Origin,
+    pub content_len: i64,
+    pub location: Location,
+    pub created: DateTime,
+    pub metadata: Vec<Metadata>,
+    pub upload_id: String,
+}
+
+impl DatabaseModel<'_> for DatasetObject {
+    fn get_model_name() -> ResultWrapper<String> {
+        Ok("Object".to_string())
     }
 }
 

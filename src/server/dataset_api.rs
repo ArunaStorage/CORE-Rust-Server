@@ -5,15 +5,7 @@ use scienceobjectsdb_rust_api::sciobjectsdbapi::services;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services::dataset_service_server::DatasetService;
 use tonic::Response;
 
-use crate::{
-    auth::authenticator::AuthHandler,
-    database::{
-        common_models::{Resource, Right},
-        data_models::{DatasetEntry, DatasetVersion},
-        database_model_wrapper::Database,
-        mongo_connector::MongoHandler,
-    },
-};
+use crate::{auth::authenticator::AuthHandler, database::{common_models::{Resource, Right}, database_model_wrapper::Database, dataset_model::DatasetEntry, dataset_version::DatasetVersion}};
 
 pub struct DatasetsServer<T: Database + 'static> {
     pub mongo_client: Arc<T>,

@@ -5,16 +5,9 @@ use scienceobjectsdb_rust_api::sciobjectsdbapi::services;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services::dataset_objects_service_server::DatasetObjectsService;
 use tonic::Response;
 
+use crate::{auth::authenticator::AuthHandler, database::{common_models::{Resource, Right}, database_model_wrapper::Database, dataset_object_group::DatasetObjectGroup, mongo_connector::MongoHandler}};
 use crate::{
-    auth::authenticator::AuthHandler,
-    database::{
-        common_models::{Resource, Right},
-        database_model_wrapper::Database,
-        mongo_connector::MongoHandler,
-    },
-};
-use crate::{
-    database::common_models::DatabaseHandler, database::data_models::DatasetObjectGroup,
+    database::common_models::DatabaseHandler,
     objectstorage::objectstorage::StorageHandler,
 };
 

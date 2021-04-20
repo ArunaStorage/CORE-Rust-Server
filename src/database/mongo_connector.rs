@@ -20,8 +20,10 @@ use mongodb::{bson::doc, options::FindOneOptions};
 
 use super::{
     common_models::{DatabaseHandler, DatabaseModel, Right, User},
-    data_models::{DatasetObjectGroup, ProjectEntry},
     database_model_wrapper::Database,
+    dataset_object_group::DatasetObject,
+    dataset_object_group::DatasetObjectGroup,
+    project_model::ProjectEntry,
 };
 use crate::SETTINGS;
 
@@ -220,7 +222,7 @@ impl Database for MongoHandler {
         return Ok(());
     }
 
-    async fn find_object(&self, id: String) -> ResultWrapper<super::data_models::DatasetObject> {
+    async fn find_object(&self, id: String) -> ResultWrapper<DatasetObject> {
         let filter = doc! {
             "objects.id": id
         };
@@ -239,10 +241,9 @@ impl Database for MongoHandler {
         let object = match csr {
             Some(value) => DatasetObjectGroup::new_from_document(value),
             None => {
-                return Err::<
-                    super::data_models::DatasetObject,
-                    Box<dyn std::error::Error + Send + Sync>,
-                >(Box::new(SimpleError::new("could not find object")));
+                return Err::<DatasetObject, Box<dyn std::error::Error + Send + Sync>>(Box::new(
+                    SimpleError::new("could not find object"),
+                ));
             }
         }?;
 

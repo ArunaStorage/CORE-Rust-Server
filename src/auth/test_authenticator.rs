@@ -6,8 +6,6 @@ use crate::database::common_models::{Resource, Right};
 
 use super::authenticator::AuthHandler;
 
-type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
-
 pub struct TestAuthenticator {}
 
 #[async_trait]

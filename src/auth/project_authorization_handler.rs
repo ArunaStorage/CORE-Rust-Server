@@ -1,15 +1,9 @@
 use std::{error::Error, fmt, sync::Arc};
 
-use crate::database::{
-    common_models::{DatabaseHandler, DatabaseModel},
-    data_models::{DatasetEntry, DatasetObjectGroup, DatasetVersion, ProjectEntry},
-    database_model_wrapper::Database,
-};
+use crate::database::{database_model_wrapper::Database, dataset_model::DatasetEntry, dataset_object_group::DatasetObjectGroup, dataset_version::DatasetVersion, project_model::ProjectEntry};
 
 use super::{authenticator::AuthHandler, oauth2_handler};
 use async_trait::async_trait;
-
-
 
 ///Kind of token that has been found in the metadata
 enum TokenType {
@@ -17,7 +11,6 @@ enum TokenType {
 }
 
 type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
-
 
 /// Authorizes access to resources based on user right on project level
 /// It will resolve each resource to its project. Based on that it will grant access or respond with an

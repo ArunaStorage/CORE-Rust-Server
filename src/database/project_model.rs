@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use std::{sync::Arc, vec};
 
 use scienceobjectsdb_rust_api::sciobjectsdbapi::{
@@ -5,9 +6,25 @@ use scienceobjectsdb_rust_api::sciobjectsdbapi::{
     services::{self, project_api_client::ProjectApiClient},
 };
 
-use super::{common_models::*, data_models::ProjectEntry, mongo_connector::MongoHandler};
+use super::{common_models::*, mongo_connector::MongoHandler};
 
-type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
+
+#[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq, Eq)]
+pub struct ProjectEntry {
+    pub id: String,
+    pub description: String,
+    pub users: Vec<User>,
+    pub name: String,
+    pub labels: Vec<Label>,
+    pub metadata: Vec<Metadata>,
+}
+
+impl DatabaseModel<'_> for ProjectEntry {
+    fn get_model_name() -> ResultWrapper<String> {
+        Ok("project".to_string())
+    }
+}
 
 impl ProjectEntry {
     pub fn new_from_proto_create(

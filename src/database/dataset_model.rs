@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use chrono::prelude::*;
 use mongodb::bson::DateTime;
 
-use super::{data_models::DatasetEntry, mongo_connector::MongoHandler};
+use super::mongo_connector::MongoHandler;
 
 use super::common_models::{
     to_labels, to_metadata, to_proto_labels, to_proto_metadata, DatabaseModel, Label, Metadata,
@@ -12,6 +12,25 @@ use super::common_models::{
 };
 
 type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct DatasetEntry {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub is_public: bool,
+    pub created: DateTime,
+    pub status: Status,
+    pub project_id: String,
+    pub labels: Vec<Label>,
+    pub metadata: Vec<Metadata>,
+}
+
+impl DatabaseModel<'_> for DatasetEntry {
+    fn get_model_name() -> ResultWrapper<String> {
+        Ok("Dataaset".to_string())
+    }
+}
 
 impl DatasetEntry {
     pub fn new_from_proto_create(request: services::CreateDatasetRequest) -> ResultWrapper<Self> {
@@ -44,6 +63,7 @@ impl DatasetEntry {
             metadata: to_proto_metadata(&self.metadata),
             project_id: self.project_id.to_string(),
             status: 0,
+            ..Default::default()
         };
 
         return dataset;

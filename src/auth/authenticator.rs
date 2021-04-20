@@ -3,8 +3,6 @@ use tonic::metadata::MetadataMap;
 
 use crate::database::common_models::{Resource, Right};
 
-
-
 /// Authorizes access to individual resources
 #[async_trait]
 pub trait AuthHandler: Send + Sync {

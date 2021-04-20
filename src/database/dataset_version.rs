@@ -1,18 +1,38 @@
 use chrono::Utc;
 use mongodb::bson::DateTime;
+use serde::{Deserialize, Serialize};
+
 use scienceobjectsdb_rust_api::sciobjectsdbapi::{
-    models::{self, Version},
+    models::{self},
     services,
 };
 
-use super::{
-    common_models::{
-        to_labels, to_metadata, to_proto_labels, to_proto_metadata, to_proto_version, to_version,
-    },
-    data_models::DatasetVersion,
+use super::common_models::{
+    to_labels, to_metadata, to_proto_labels, to_proto_metadata, to_proto_version, to_version,
+    DatabaseModel, Label, Metadata, Status, Version,
 };
 
-type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct DatasetVersion {
+    pub id: String,
+    pub dataset_id: String,
+    pub description: String,
+    pub labels: Vec<Label>,
+    pub metadata: Vec<Metadata>,
+    pub created: DateTime,
+    pub version: Version,
+    pub object_group_ids: Vec<String>,
+    pub object_count: i64,
+    pub status: Status,
+}
+
+impl DatabaseModel<'_> for DatasetVersion {
+    fn get_model_name() -> ResultWrapper<String> {
+        Ok("DatasetVersion".to_string())
+    }
+}
 
 impl DatasetVersion {
     pub fn new_from_proto_create(

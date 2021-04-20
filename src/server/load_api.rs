@@ -13,7 +13,7 @@ use tonic::Response;
 
 use crate::database::{
     common_models::{Resource, Right},
-    data_models::DatasetObjectGroup,
+    dataset_object_group::DatasetObjectGroup
 };
 
 use crate::objectstorage::objectstorage::StorageHandler;

@@ -3,8 +3,10 @@ use scienceobjectsdb_rust_api::sciobjectsdbapi::services::AddUserToProjectReques
 
 use super::{
     common_models::{DatabaseModel, Label},
-    data_models::DatasetObject,
+    dataset_object_group::DatasetObject,
 };
+
+use super::common_models::{Location, Metadata, Origin, Status, User, Version};
 
 type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 #[async_trait]

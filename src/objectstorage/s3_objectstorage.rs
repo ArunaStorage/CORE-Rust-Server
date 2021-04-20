@@ -15,14 +15,10 @@ use scienceobjectsdb_rust_api::sciobjectsdbapi::services::CompletedParts;
 use tonic::Response;
 
 use super::objectstorage::StorageHandler;
-use crate::database::{
-    common_models::{IndexLocation, Location, LocationType},
-    data_models::DatasetObject,
-};
+use crate::database::{common_models::{IndexLocation, Location, LocationType}, dataset_object_group::DatasetObject};
 
 type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 type ResultWrapperSync<T> = std::result::Result<T, Box<dyn std::error::Error>>;
-
 
 /// Handles S3-compatible object storage backends for storing data
 /// Access is entirely provided via presigned URLs
@@ -257,9 +253,7 @@ mod tests {
         services::{self, CreateObjectRequest},
     };
 
-    use crate::{
-        database::data_models::DatasetObject, objectstorage::objectstorage::StorageHandler,
-    };
+    use crate::{database::dataset_object_group::DatasetObject, objectstorage::objectstorage::StorageHandler};
 
     use super::S3Handler;
 

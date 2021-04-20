@@ -8,14 +8,7 @@ use scienceobjectsdb_rust_api::sciobjectsdbapi::{
 };
 use tonic::Response;
 
-use crate::{
-    auth::authenticator::AuthHandler,
-    database::{
-        common_models::{Resource, Right},
-        data_models::{DatasetEntry, ProjectEntry},
-        database_model_wrapper::Database,
-    },
-};
+use crate::{auth::authenticator::AuthHandler, database::{common_models::{Resource, Right}, database_model_wrapper::Database, dataset_model::DatasetEntry, project_model::ProjectEntry}};
 
 /// Handles the project related API endpoints
 /// The individual functions implemented are defined and documented in the API documentation
