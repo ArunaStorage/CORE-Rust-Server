@@ -4,8 +4,10 @@ use std::{env, path::PathBuf, sync::Once, thread};
 
 use crate::SETTINGS;
 
+#[allow(dead_code)]
 static INIT: Once = Once::new();
 
+#[allow(dead_code)]
 pub fn test_init() {
     INIT.call_once(|| {
         match env::var("MONGO_PASSWORD") {

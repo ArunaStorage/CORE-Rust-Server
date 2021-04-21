@@ -107,6 +107,7 @@ impl MongoHandler {
         return Ok(Some(model));
     }
 
+    #[allow(dead_code)]
     pub fn to_model<'de, T: DatabaseModel<'de>>(
         &self,
         document: Option<Document>,

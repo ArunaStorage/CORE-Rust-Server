@@ -9,6 +9,7 @@ use super::{authenticator::AuthHandler, oauth2_handler};
 use async_trait::async_trait;
 
 ///Kind of token that has been found in the metadata
+#[allow(dead_code)]
 enum TokenType {
     OAuth2,
 }
