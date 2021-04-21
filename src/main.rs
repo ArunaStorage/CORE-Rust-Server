@@ -21,9 +21,7 @@ mod server;
 use config::{Config, File};
 use std::sync::RwLock;
 
-use log::{debug, error, info, log_enabled, Level};
-
-use clap::{App, Arg, SubCommand};
+use clap::{App, Arg};
 use server::server::start_server;
 
 lazy_static! {

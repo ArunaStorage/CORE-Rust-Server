@@ -26,7 +26,7 @@ pub struct DatasetEntry {
 
 impl DatabaseModel<'_> for DatasetEntry {
     fn get_model_name() -> ResultWrapper<String> {
-        Ok("Dataaset".to_string())
+        Ok("Dataset".to_string())
     }
 }
 
