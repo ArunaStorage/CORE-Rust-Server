@@ -41,7 +41,7 @@ impl ProjectEntry {
             id: uuid.to_string(),
             name: request.name,
             description: request.description,
-            metadata: to_metadata(request.metadata.to_vec()),
+            metadata: to_metadata(&request.metadata.to_vec()),
             users: vec![user],
             ..Default::default()
         };

@@ -20,7 +20,8 @@ use super::{
     common_models::{DatabaseModel, Right, User},
     database::Database,
     dataset_object_group::DatasetObject,
-    dataset_object_group::DatasetObjectGroup,
+    dataset_object_group::ObjectGroup,
+    dataset_object_group::ObjectGroupVersion,
     project_model::ProjectEntry,
 };
 use crate::SETTINGS;
@@ -230,12 +231,12 @@ impl Database for MongoHandler {
         let options = FindOneOptions::builder().projection(projection).build();
 
         let csr = self
-            .collection::<DatasetObjectGroup>()
+            .collection::<ObjectGroup>()
             .find_one(filter, options)
             .await?;
 
         let object = match csr {
-            Some(value) => DatasetObjectGroup::new_from_document(value),
+            Some(value) => ObjectGroupVersion::new_from_document(value),
             None => {
                 return Err::<DatasetObject, Box<dyn std::error::Error + Send + Sync>>(Box::new(
                     SimpleError::new("could not find object"),
@@ -272,6 +273,27 @@ impl Database for MongoHandler {
                 return Err(Box::new(SimpleError::new("could not update fields")));
             }
         };
+    }
+
+    async fn find_one_by_key<'de, T: DatabaseModel<'de>>(
+        &self,
+        key: String,
+        value: String,
+    ) -> ResultWrapper<Option<T>> {
+        let filter = doc! {key: value};
+        let filter_options = FindOneOptions::default();
+
+        let csr = self
+            .collection::<T>()
+            .find_one(filter, filter_options)
+            .await?;
+
+        let entry = match csr {
+            Some(value) => T::new_from_document(value)?,
+            None => return Ok(None),
+        };
+
+        Ok(Some(entry))
     }
 }
 

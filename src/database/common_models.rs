@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use scienceobjectsdb_rust_api::sciobjectsdbapi::models;
 
-use super::{dataset_model::DatasetEntry, dataset_object_group::DatasetObjectGroup};
+use super::{dataset_model::DatasetEntry, dataset_object_group::ObjectGroup};
 
 type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 type ResultWrapperSync<T> = std::result::Result<T, Box<dyn std::error::Error>>;
@@ -21,6 +21,7 @@ pub enum Resource {
     Dataset,
     DatasetVersion,
     ObjectGroup,
+    ObjectGroupVersion,
     Object,
 }
 
@@ -159,20 +160,18 @@ pub trait DatasetHandlerTrait {
 
 #[async_trait]
 pub trait ObjectGroupHandlerTrait {
-    async fn get_dataset_object_group(
-        &self,
-        dataset_id: String,
-    ) -> ResultWrapper<Vec<DatasetObjectGroup>>;
+    async fn get_dataset_object_group(&self, dataset_id: String)
+        -> ResultWrapper<Vec<ObjectGroup>>;
 }
 
-pub fn to_metadata(proto_metadata: Vec<models::Metadata>) -> Vec<Metadata> {
+pub fn to_metadata(proto_metadata: &Vec<models::Metadata>) -> Vec<Metadata> {
     let mut metadata = Vec::new();
 
     for proto_metadata_entry in proto_metadata {
         let metadata_entry = Metadata {
-            key: proto_metadata_entry.key,
-            metadata: proto_metadata_entry.metadata,
-            labels: to_labels(proto_metadata_entry.labels),
+            key: proto_metadata_entry.key.clone(),
+            metadata: proto_metadata_entry.metadata.clone(),
+            labels: to_labels(&proto_metadata_entry.labels),
             ..Default::default()
         };
 
@@ -182,13 +181,13 @@ pub fn to_metadata(proto_metadata: Vec<models::Metadata>) -> Vec<Metadata> {
     metadata
 }
 
-pub fn to_labels(proto_labels: Vec<models::Label>) -> Vec<Label> {
+pub fn to_labels(proto_labels: &Vec<models::Label>) -> Vec<Label> {
     let mut labels = Vec::new();
 
     for proto_label in proto_labels {
         let label = Label {
-            key: proto_label.key,
-            value: proto_label.value,
+            key: proto_label.key.clone(),
+            value: proto_label.value.clone(),
         };
 
         labels.push(label);
@@ -198,13 +197,13 @@ pub fn to_labels(proto_labels: Vec<models::Label>) -> Vec<Label> {
 }
 
 #[allow(dead_code)]
-pub fn to_users(proto_users: Vec<models::User>) -> Vec<User> {
+pub fn to_users(proto_users: &Vec<models::User>) -> Vec<User> {
     let mut users = Vec::new();
 
     for proto_user in proto_users {
         let user = User {
-            user_id: proto_user.user_id,
-            rights: to_rights(proto_user.rights),
+            user_id: proto_user.user_id.clone(),
+            rights: to_rights(proto_user.rights.clone()),
         };
 
         users.push(user);

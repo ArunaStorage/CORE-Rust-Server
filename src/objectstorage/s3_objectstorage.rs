@@ -423,7 +423,7 @@ mod tests {
         test_data.push_str(&data_2);
 
         let object = DatasetObject::new_from_proto_create(
-            create_object_req,
+            &create_object_req,
             uuid.to_string(),
             s3_bucket.clone(),
         )

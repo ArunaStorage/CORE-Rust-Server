@@ -172,20 +172,29 @@ mod server_test {
             ..Default::default()
         };
 
-        let create_object_group_request = Request::new(services::CreateObjectGroupRequest {
-            dataset_id: dataset.id,
-            name: "testobjectgroup".to_string(),
-            objects: vec![create_object_request],
-            ..Default::default()
-        });
+        let create_object_group_request =
+            Request::new(services::CreateObjectGroupWithVersionRequest {
+                object_group: Some(services::CreateObjectGroupRequest {
+                    dataset_id: dataset.id.clone(),
+                    name: "test_group".to_string(),
+                    ..Default::default()
+                }),
+                object_group_version: Some(services::CreateObjectGroupVersionRequest {
+                    objects: vec![create_object_request],
+                    ..Default::default()
+                }),
+                ..Default::default()
+            });
 
         let object_group = objects_endpoints
-            .create_object_group(create_object_group_request)
+            .create_object_group_with_version(create_object_group_request)
             .await
             .unwrap()
             .into_inner();
 
-        let object_id = object_group.objects[0].id.clone();
+        let object_id = object_group.object_group_version.unwrap().objects[0]
+            .id
+            .clone();
 
         let upload_request = Request::new(models::Id {
             id: object_id.clone(),

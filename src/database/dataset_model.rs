@@ -40,9 +40,9 @@ impl DatasetEntry {
             name: request.name,
             created: DateTime::from(timestamp),
             is_public: false,
-            labels: to_labels(request.labels),
+            labels: to_labels(&request.labels),
             project_id: request.project_id,
-            metadata: to_metadata(request.metadata),
+            metadata: to_metadata(&request.metadata),
             status: Status::Available,
             description: "".to_string(),
         };

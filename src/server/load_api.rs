@@ -1,6 +1,7 @@
 use crate::{auth::authenticator::AuthHandler, database::database::Database};
 use std::sync::Arc;
 
+use models::ObjectGroupVersion;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services::CreateLinkResponse;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::{
     models::{Empty, Object},
@@ -13,7 +14,8 @@ use tonic::Response;
 
 use crate::database::{
     common_models::{Resource, Right},
-    dataset_object_group::DatasetObjectGroup,
+    dataset_object_group,
+    dataset_object_group::ObjectGroup,
 };
 
 use crate::objectstorage::objectstorage::StorageHandler;
@@ -40,7 +42,7 @@ impl<T: Database> ObjectLoad for LoadServer<T> {
             )
             .await?;
 
-        let object_group_option: Option<Vec<DatasetObjectGroup>> = match self
+        let object_group_option: Option<Vec<dataset_object_group::ObjectGroupVersion>> = match self
             .mongo_client
             .find_by_key("objects.id".to_string(), upload_object.id.clone())
             .await
@@ -108,7 +110,7 @@ impl<T: Database> ObjectLoad for LoadServer<T> {
             )
             .await?;
 
-        let object_group_option: Option<Vec<DatasetObjectGroup>> = match self
+        let object_group_option: Option<Vec<dataset_object_group::ObjectGroupVersion>> = match self
             .mongo_client
             .find_by_key("objects.id".to_string(), download_object.id.clone())
             .await
@@ -193,7 +195,7 @@ impl<T: Database> ObjectLoad for LoadServer<T> {
             .await?;
         let updated_fields_count = match self
             .mongo_client
-            .update_field::<DatasetObjectGroup>(
+            .update_field::<ObjectGroup>(
                 "objects.id".to_string(),
                 object.id.clone(),
                 "objects.$".to_string(),

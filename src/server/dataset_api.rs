@@ -172,4 +172,11 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
     ) -> Result<Response<services::ObjectGroupList>, tonic::Status> {
         todo!()
     }
+
+    async fn dataset_object_group_histories(
+        &self,
+        request: tonic::Request<models::Id>,
+    ) -> Result<Response<services::ObjectGroupList>, tonic::Status> {
+        todo!()
+    }
 }

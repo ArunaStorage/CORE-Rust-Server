@@ -1,8 +1,11 @@
 use std::{error::Error, fmt, sync::Arc};
 
 use crate::database::{
-    database::Database, dataset_model::DatasetEntry, dataset_object_group::DatasetObjectGroup,
-    dataset_version::DatasetVersion, project_model::ProjectEntry,
+    database::Database,
+    dataset_model::DatasetEntry,
+    dataset_object_group::{ObjectGroup, ObjectGroupVersion},
+    dataset_version::DatasetVersion,
+    project_model::ProjectEntry,
 };
 
 use super::{authenticator::AuthHandler, oauth2_handler};
@@ -56,7 +59,7 @@ impl<T: Database> ProjectAuthzHandler<T> {
     }
 
     async fn project_id_of_object_group(&self, id: String) -> ResultWrapper<String> {
-        let dataset_groups_option: Option<Vec<DatasetObjectGroup>> = self
+        let dataset_groups_option: Option<Vec<ObjectGroup>> = self
             .database_handler
             .find_by_key("id".to_string(), id.clone())
             .await?;
@@ -78,7 +81,7 @@ impl<T: Database> ProjectAuthzHandler<T> {
     }
 
     async fn project_id_of_object(&self, id: String) -> ResultWrapper<String> {
-        let dataset_groups_option: Option<Vec<DatasetObjectGroup>> = self
+        let dataset_groups_option: Option<Vec<ObjectGroup>> = self
             .database_handler
             .find_by_key("objects.id".to_string(), id.clone())
             .await?;
@@ -120,6 +123,31 @@ impl<T: Database> ProjectAuthzHandler<T> {
 
         return self.project_id_of_dataset(dataset_group.id.clone()).await;
     }
+
+    async fn project_id_of_object_group_version(&self, id: String) -> ResultWrapper<String> {
+        let dataset_groups_version_option: Option<Vec<ObjectGroupVersion>> = self
+            .database_handler
+            .find_by_key("id".to_string(), id.clone())
+            .await?;
+
+        let object_group_versions = match dataset_groups_version_option {
+            Some(value) => value,
+            None => {
+                return Err::<String, Box<dyn std::error::Error + Send + Sync>>(Box::new(
+                    InvalidError::new(&format!(
+                        "Could not find datasetobjectgroup with id: {}",
+                        id.to_string()
+                    )),
+                ));
+            }
+        };
+
+        let object_group_version = object_group_versions[0].clone();
+        let dataset_id = object_group_version.datasete_id;
+
+        let project_id = self.project_id_of_dataset(dataset_id).await?;
+        Ok(project_id)
+    }
 }
 
 #[async_trait]
@@ -144,6 +172,9 @@ impl<T: Database> AuthHandler for ProjectAuthzHandler<T> {
             }
             crate::database::common_models::Resource::Object => {
                 self.project_id_of_object(id.clone()).await
+            }
+            crate::database::common_models::Resource::ObjectGroupVersion => {
+                self.project_id_of_object_group_version(id.clone()).await
             }
         };
 

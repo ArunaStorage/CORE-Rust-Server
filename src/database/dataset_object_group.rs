@@ -17,82 +17,141 @@ use super::common_models;
 
 type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
-pub struct DatasetObjectGroup {
+/// Here are all models that are used to store object related components
+/// A ObjectGroupVersions is used to keep track of the history of a set of DatasetObjectGroups
+
+/// Stores the history of object groups
+#[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq, Eq)]
+pub struct ObjectGroup {
     pub id: String,
     pub name: String,
-    pub version: Version,
-    pub objects_count: i64,
-    pub objects: Vec<DatasetObject>,
-    pub labels: Vec<Label>,
-    pub object_heritage_id: String,
     pub dataset_id: String,
-    pub status: Status,
+    pub labels: Vec<Label>,
     pub metadata: Vec<Metadata>,
+    pub status: Status,
+    pub head_id: String,
 }
 
-impl DatabaseModel<'_> for DatasetObjectGroup {
+impl DatabaseModel<'_> for ObjectGroup {
     fn get_model_name() -> ResultWrapper<String> {
         Ok("ObjectGroup".to_string())
     }
 }
 
-impl DatasetObjectGroup {
+impl ObjectGroup {
     pub fn new_from_proto_create<T: Database>(
-        request: services::CreateObjectGroupRequest,
-        bucket: String,
+        request: &services::CreateObjectGroupRequest,
         _handler: Arc<T>,
     ) -> ResultWrapper<Self> {
         let uuid = uuid::Uuid::new_v4();
 
-        let mut objects = Vec::new();
-        let mut i = 0;
-        for create_object in request.objects {
-            i = i + 1;
-            let object = DatasetObject::new_from_proto_create(
-                create_object,
-                request.dataset_id.clone(),
-                bucket.clone(),
-            )?;
-            objects.push(object)
-        }
-
-        let object_group = DatasetObjectGroup {
+        let object_group = ObjectGroup {
             id: uuid.to_string(),
-            name: request.name,
-            objects_count: objects.len() as i64,
-            objects: objects,
-            labels: to_labels(request.labels),
-            dataset_id: request.dataset_id,
+            name: request.name.clone(),
+            labels: to_labels(&request.labels),
+            dataset_id: request.dataset_id.clone(),
             status: Status::Available,
-            metadata: to_metadata(request.metadata),
-            object_heritage_id: "".to_string(),
-            version: Version::default(),
+            metadata: to_metadata(&request.metadata),
+            ..Default::default()
         };
 
         return Ok(object_group);
     }
 
     pub fn to_proto(&self) -> models::ObjectGroup {
-        let mut objects = Vec::new();
-
-        for object in &self.objects {
-            let object_proto = object.to_proto_object();
-            objects.push(object_proto)
-        }
-
-        let object_group = models::ObjectGroup {
+        let proto_object = models::ObjectGroup {
             id: self.id.clone(),
-            name: self.name.clone(),
-            objects: objects,
-            labels: to_proto_labels(&self.labels),
             dataset_id: self.dataset_id.clone(),
-            status: 0,
+            labels: to_proto_labels(&self.labels),
             metadata: to_proto_metadata(&self.metadata),
+            head_id: self.head_id.clone(),
+            name: self.name.clone(),
             ..Default::default()
         };
 
-        return object_group;
+        return proto_object;
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct ObjectGroupVersion {
+    pub id: String,
+    pub datasete_id: String,
+    pub date_create: DateTime,
+    pub labels: Vec<Label>,
+    pub metadata: Vec<Metadata>,
+    pub objects_count: i64,
+    pub objects: Vec<DatasetObject>,
+    pub version_ref_id: String,
+    pub version: Version,
+}
+
+impl DatabaseModel<'_> for ObjectGroupVersion {
+    fn get_model_name() -> ResultWrapper<String> {
+        Ok("ObjectGroupVersion".to_string())
+    }
+}
+
+impl ObjectGroupVersion {
+    pub fn new_from_proto_create<T: Database>(
+        request: &services::CreateObjectGroupVersionRequest,
+        bucket: String,
+        dataset_id: String,
+        object_group_version_ref_id: String,
+
+        _handler: Arc<T>,
+    ) -> ResultWrapper<Self> {
+        let uuid = uuid::Uuid::new_v4();
+
+        let timestamp = Utc::now();
+
+        let mut objects = Vec::new();
+
+        for create_object_request in &request.objects {
+            let object = DatasetObject::new_from_proto_create(
+                &create_object_request,
+                dataset_id.clone(),
+                bucket.clone(),
+            )?;
+            objects.push(object);
+        }
+
+        let objects_count = objects.len().clone();
+
+        let object_group = ObjectGroupVersion {
+            id: uuid.to_string(),
+            labels: to_labels(&request.labels),
+            metadata: to_metadata(&request.metadata),
+            datasete_id: dataset_id.clone(),
+            date_create: DateTime::from(timestamp),
+            objects: objects,
+            objects_count: objects_count as i64,
+            version_ref_id: object_group_version_ref_id,
+            version: Default::default(),
+        };
+
+        return Ok(object_group);
+    }
+
+    pub fn to_proto(&self) -> models::ObjectGroupVersion {
+        let mut proto_objects = Vec::new();
+
+        for object in &self.objects {
+            let proto_object = object.to_proto_object();
+            proto_objects.push(proto_object);
+        }
+
+        let proto_object = models::ObjectGroupVersion {
+            id: self.id.clone(),
+            dataset_id: self.datasete_id.clone(),
+            labels: to_proto_labels(&self.labels),
+            metadata: to_proto_metadata(&self.metadata),
+            objects: proto_objects,
+            version_ref_id: self.version_ref_id.clone(),
+            ..Default::default()
+        };
+
+        return proto_object;
     }
 }
 
@@ -117,7 +176,7 @@ impl DatabaseModel<'_> for DatasetObject {
 
 impl DatasetObject {
     pub fn new_from_proto_create(
-        request: services::CreateObjectRequest,
+        request: &services::CreateObjectRequest,
         dataset_id: String,
         bucket: String,
     ) -> ResultWrapper<Self> {
@@ -144,14 +203,14 @@ impl DatasetObject {
 
         let object = DatasetObject {
             id: uuid.to_string().clone(),
-            filename: request.filename,
-            filetype: request.filetype,
+            filename: request.filename.clone(),
+            filetype: request.filetype.clone(),
             origin: Origin::default(),
             content_len: request.content_len,
             location: location,
             created: DateTime::from(timestamp),
             upload_id: "".to_string(),
-            metadata: to_metadata(request.metadata),
+            metadata: to_metadata(&request.metadata),
         };
 
         Ok(object)
