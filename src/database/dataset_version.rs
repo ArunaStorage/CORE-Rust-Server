@@ -7,10 +7,7 @@ use scienceobjectsdb_rust_api::sciobjectsdbapi::{
     services,
 };
 
-use super::common_models::{
-    to_labels, to_metadata, to_proto_labels, to_proto_metadata, to_proto_version, to_version,
-    DatabaseModel, Label, Metadata, Status, Version,
-};
+use super::common_models::{DatabaseModel, Label, Metadata, Status, Version, to_labels, to_metadata, to_proto_datetime, to_proto_labels, to_proto_metadata, to_proto_status, to_proto_version, to_version};
 
 type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
@@ -67,7 +64,8 @@ impl DatasetVersion {
             object_count: self.object_count,
             object_group_ids: self.object_group_ids.clone(),
             version: Some(to_proto_version(&self.version)),
-            ..Default::default()
+            status: to_proto_status(&self.status) as i32,
+            created: Some(to_proto_datetime(&self.created))
         };
 
         return Ok(proto_version);

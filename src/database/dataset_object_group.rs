@@ -5,13 +5,7 @@ use mongodb::bson::DateTime;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::{models, services};
 use serde::{Deserialize, Serialize};
 
-use super::{
-    common_models::{
-        to_labels, to_metadata, to_proto_labels, to_proto_metadata, DatabaseModel, Label, Location,
-        Metadata, Origin, Status, Version,
-    },
-    database::Database,
-};
+use super::{common_models::{DatabaseModel, Label, Location, Metadata, Origin, Status, Version, to_labels, to_metadata, to_proto_labels, to_proto_metadata, to_proto_status}, database::Database};
 
 use super::common_models;
 
@@ -50,7 +44,7 @@ impl ObjectGroup {
             name: request.name.clone(),
             labels: to_labels(&request.labels),
             dataset_id: request.dataset_id.clone(),
-            status: Status::Available,
+            status: Status::Initializing,
             metadata: to_metadata(&request.metadata),
             ..Default::default()
         };
@@ -66,7 +60,7 @@ impl ObjectGroup {
             metadata: to_proto_metadata(&self.metadata),
             head_id: self.head_id.clone(),
             name: self.name.clone(),
-            ..Default::default()
+            status: to_proto_status(&self.status) as i32,
         };
 
         return proto_object;

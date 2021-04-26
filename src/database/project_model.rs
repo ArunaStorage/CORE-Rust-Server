@@ -43,7 +43,7 @@ impl ProjectEntry {
             description: request.description,
             metadata: to_metadata(&request.metadata.to_vec()),
             users: vec![user],
-            ..Default::default()
+            labels: to_labels(&request.labels),
         };
 
         return Ok(project);

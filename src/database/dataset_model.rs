@@ -4,10 +4,7 @@ use serde::{Deserialize, Serialize};
 use chrono::prelude::*;
 use mongodb::bson::DateTime;
 
-use super::common_models::{
-    to_labels, to_metadata, to_proto_labels, to_proto_metadata, DatabaseModel, Label, Metadata,
-    Status,
-};
+use super::common_models::{DatabaseModel, Label, Metadata, Status, to_labels, to_metadata, to_proto_labels, to_proto_metadata, to_proto_status};
 
 type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
@@ -60,7 +57,7 @@ impl DatasetEntry {
             labels: to_proto_labels(&self.labels),
             metadata: to_proto_metadata(&self.metadata),
             project_id: self.project_id.to_string(),
-            status: 0,
+            status: to_proto_status(&self.status) as i32,
             ..Default::default()
         };
 
