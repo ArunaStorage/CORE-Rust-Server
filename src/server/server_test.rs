@@ -10,6 +10,8 @@ static INIT: Once = Once::new();
 #[allow(dead_code)]
 pub fn test_init() {
     INIT.call_once(|| {
+        env_logger::init();
+
         match env::var("MONGO_PASSWORD") {
             Ok(_) => {}
             Err(_) => env::set_var("MONGO_PASSWORD", "test123"),

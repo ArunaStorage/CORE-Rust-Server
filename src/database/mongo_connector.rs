@@ -1,8 +1,10 @@
 use async_trait::async_trait;
 
+use std::collections::HashMap;
+
 use futures::stream::StreamExt;
 use mongodb::{
-    bson::{to_document, Bson, Document},
+    bson::{to_document, to_bson, Bson, Document},
     options::{ClientOptions, FindOptions, UpdateOptions},
     Client,
 };
@@ -259,10 +261,12 @@ impl Database for MongoHandler {
             find_key: find_value,
         };
 
-        let value_doc = to_document(&update_value)?;
+        let update_value_bson = to_bson(&update_value)?;
 
         let update = doc! {
-            update_field: value_doc,
+            "$set": {
+                update_field: update_value_bson,
+            }
         };
 
         match self

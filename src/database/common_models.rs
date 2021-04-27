@@ -18,6 +18,7 @@ pub struct User {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[serde(untagged)]
 pub enum Resource {
     Project,
     Dataset,
