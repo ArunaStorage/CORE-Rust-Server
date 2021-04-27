@@ -4,7 +4,6 @@ use scienceobjectsdb_rust_api::sciobjectsdbapi::services::project_api_server::Pr
 use scienceobjectsdb_rust_api::sciobjectsdbapi::{models::Project, services};
 use scienceobjectsdb_rust_api::sciobjectsdbapi::{
     models::{self},
-    services::DatasetList,
 };
 use tonic::Response;
 
@@ -75,9 +74,9 @@ impl<T: Database> ProjectApi for ProjectServer<T> {
             }
         };
 
-        let project_option: Option<Vec<ProjectEntry>> = match self
+        let project_option: Option<ProjectEntry> = match self
             .mongo_client
-            .find_by_key("id".to_string(), add_user.project_id.clone())
+            .find_one_by_key("id".to_string(), add_user.project_id.clone())
             .await
         {
             Ok(value) => value,
@@ -87,10 +86,9 @@ impl<T: Database> ProjectApi for ProjectServer<T> {
             }
         };
 
-        let projects = project_option.unwrap();
+        let project = project_option.unwrap();
 
-        let project_entry = projects[0].clone();
-        return Ok(tonic::Response::new(project_entry.to_proto_project()));
+        return Ok(tonic::Response::new(project.to_proto_project()));
     }
 
     async fn get_project_datasets(
@@ -107,7 +105,7 @@ impl<T: Database> ProjectApi for ProjectServer<T> {
             )
             .await?;
 
-        let datasets_option: Option<Vec<DatasetEntry>> = match self
+        let datasets: Vec<DatasetEntry> = match self
             .mongo_client
             .find_by_key("project_id".to_string(), request.into_inner().id)
             .await
@@ -117,11 +115,6 @@ impl<T: Database> ProjectApi for ProjectServer<T> {
                 log::error!("{:?}", e);
                 return Err(tonic::Status::internal(format!("{:?}", e)));
             }
-        };
-
-        let datasets = match datasets_option {
-            Some(datasets) => datasets,
-            None => return Ok(Response::new(DatasetList::default())),
         };
 
         let mut proto_datasets = Vec::new();
@@ -145,7 +138,7 @@ impl<T: Database> ProjectApi for ProjectServer<T> {
         let _get_request = request.get_ref();
         let id = self.auth_handler.user_id(request.metadata()).await?;
 
-        let projects: Option<Vec<ProjectEntry>> = match self
+        let projects: Vec<ProjectEntry> = match self
             .mongo_client
             .find_by_key("users.user_id".to_string(), id)
             .await
@@ -157,15 +150,10 @@ impl<T: Database> ProjectApi for ProjectServer<T> {
             }
         };
 
-        let entries = match projects {
-            Some(value) => value,
-            None => Vec::new(),
-        };
-
         let mut proto_entries: Vec<Project> = Vec::new();
 
-        for entry in entries {
-            proto_entries.push(entry.to_proto_project())
+        for project in projects {
+            proto_entries.push(project.to_proto_project())
         }
 
         let project_list = services::ProjectList {

@@ -1,10 +1,8 @@
 use async_trait::async_trait;
 
-use std::collections::HashMap;
-
 use futures::stream::StreamExt;
 use mongodb::{
-    bson::{to_document, to_bson, Bson, Document},
+    bson::{to_bson, to_document, Bson, Document},
     options::{ClientOptions, FindOptions, UpdateOptions},
     Client,
 };
@@ -147,7 +145,7 @@ impl Database for MongoHandler {
         &self,
         key: String,
         value: String,
-    ) -> ResultWrapper<Option<Vec<T>>> {
+    ) -> ResultWrapper<Vec<T>> {
         let mut entries = Vec::new();
 
         let filter = doc! {key: value};
@@ -164,11 +162,8 @@ impl Database for MongoHandler {
                 Err(e) => return Err(e.into()),
             }
         }
-        if entries.len() > 0 {
-            return Ok(Some(entries));
-        }
 
-        Ok(None)
+        Ok(entries)
     }
 
     async fn store<'de, T: DatabaseModel<'de>>(&self, value: T) -> ResultWrapper<T> {
@@ -250,7 +245,11 @@ impl Database for MongoHandler {
         return Ok(object.objects[0].clone());
     }
 
-    async fn update_field<'de, T: DatabaseModel<'de>, Y: Deserialize<'de> + Serialize + Send + Sync>(
+    async fn update_field<
+        'de,
+        T: DatabaseModel<'de>,
+        Y: Deserialize<'de> + Serialize + Send + Sync,
+    >(
         &self,
         find_key: String,
         find_value: String,

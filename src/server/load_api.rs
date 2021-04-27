@@ -41,7 +41,7 @@ impl<T: Database> ObjectLoad for LoadServer<T> {
             )
             .await?;
 
-        let object_group_option: Option<Vec<dataset_object_group::ObjectGroupVersion>> = match self
+        let object_groups: Vec<dataset_object_group::ObjectGroupVersion> = match self
             .mongo_client
             .find_by_key("objects.id".to_string(), upload_object.id.clone())
             .await
@@ -50,16 +50,6 @@ impl<T: Database> ObjectLoad for LoadServer<T> {
             Err(e) => {
                 log::error!("{:?}", e);
                 return Err(tonic::Status::internal(format!("{:?}", e)));
-            }
-        };
-
-        let object_groups = match object_group_option {
-            Some(value) => value,
-            None => {
-                return Err(tonic::Status::not_found(format!(
-                    "Could not find {}",
-                    upload_object.id.clone()
-                )))
             }
         };
 
@@ -109,7 +99,7 @@ impl<T: Database> ObjectLoad for LoadServer<T> {
             )
             .await?;
 
-        let object_group_option: Option<Vec<dataset_object_group::ObjectGroupVersion>> = match self
+        let object_groups: Vec<dataset_object_group::ObjectGroupVersion> = match self
             .mongo_client
             .find_by_key("objects.id".to_string(), download_object.id.clone())
             .await
@@ -121,15 +111,6 @@ impl<T: Database> ObjectLoad for LoadServer<T> {
             }
         };
 
-        let object_groups = match object_group_option {
-            Some(value) => value,
-            None => {
-                return Err(tonic::Status::not_found(format!(
-                    "Could not find {}",
-                    download_object.id.clone()
-                )))
-            }
-        };
         for object_group in object_groups {
             for object in object_group.objects {
                 let cloned_object = object.clone();

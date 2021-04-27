@@ -1,6 +1,7 @@
 use std::{error::Error, fmt, sync::Arc};
 
 use crate::database::{
+    common_models::DatabaseModel,
     database::Database,
     dataset_model::DatasetEntry,
     dataset_object_group::{ObjectGroup, ObjectGroupVersion},
@@ -37,115 +38,60 @@ impl<T: Database> ProjectAuthzHandler<T> {
     }
 
     async fn project_id_of_dataset(&self, id: String) -> ResultWrapper<String> {
-        let datasets_option: Option<Vec<DatasetEntry>> = self
+        let dataset_option: Option<DatasetEntry> = self
             .database_handler
-            .find_by_key("id".to_string(), id.clone())
+            .find_one_by_key("id".to_string(), id.clone())
             .await?;
-        let datasets = match datasets_option {
-            Some(value) => value,
-            None => {
-                return Err::<String, Box<dyn std::error::Error + Send + Sync>>(Box::new(
-                    InvalidError::new(&format!(
-                        "Could not find dataset with id: {}",
-                        id.to_string()
-                    )),
-                ));
-            }
-        };
 
-        let dataset = datasets[0].clone();
+        let dataset = option_to_error(dataset_option, &id)?;
 
         return Ok(dataset.project_id);
     }
 
     async fn project_id_of_object_group(&self, id: String) -> ResultWrapper<String> {
-        let dataset_groups_option: Option<Vec<ObjectGroup>> = self
+        let dataset_groups_option: Option<ObjectGroup> = self
             .database_handler
-            .find_by_key("id".to_string(), id.clone())
+            .find_one_by_key("id".to_string(), id.clone())
             .await?;
-        let dataset_group = match dataset_groups_option {
-            Some(value) => value,
-            None => {
-                return Err::<String, Box<dyn std::error::Error + Send + Sync>>(Box::new(
-                    InvalidError::new(&format!(
-                        "Could not find datasetobjectgroup with id: {}",
-                        id.to_string()
-                    )),
-                ));
-            }
-        };
 
-        let dataset_group = dataset_group[0].clone();
+        let dataset_group = option_to_error(dataset_groups_option, &id)?;
 
         return self.project_id_of_dataset(dataset_group.id.clone()).await;
     }
 
     async fn project_id_of_object(&self, id: String) -> ResultWrapper<String> {
-        let dataset_groups_option: Option<Vec<ObjectGroup>> = self
+        let dataset_group_option: Option<ObjectGroup> = self
             .database_handler
-            .find_by_key("objects.id".to_string(), id.clone())
+            .find_one_by_key("objects.id".to_string(), id.clone())
             .await?;
-        let dataset_group = match dataset_groups_option {
-            Some(value) => value,
-            None => {
-                return Err::<String, Box<dyn std::error::Error + Send + Sync>>(Box::new(
-                    InvalidError::new(&format!(
-                        "Could not find datasetobjectgroup with id: {}",
-                        id.to_string()
-                    )),
-                ));
-            }
-        };
 
-        let dataset_group = dataset_group[0].clone();
+        let dataset_group = option_to_error(dataset_group_option, &id)?;
 
         return self.project_id_of_dataset(dataset_group.id.clone()).await;
     }
 
     async fn project_id_of_dataset_version(&self, id: String) -> ResultWrapper<String> {
-        let dataset_groups_option: Option<Vec<DatasetVersion>> = self
+        let dataset_version_option: Option<DatasetVersion> = self
             .database_handler
-            .find_by_key("objects.id".to_string(), id.clone())
+            .find_one_by_key("objects.id".to_string(), id.clone())
             .await?;
-        let dataset_group = match dataset_groups_option {
-            Some(value) => value,
-            None => {
-                return Err::<String, Box<dyn std::error::Error + Send + Sync>>(Box::new(
-                    InvalidError::new(&format!(
-                        "Could not find datasetobjectgroup with id: {}",
-                        id.to_string()
-                    )),
-                ));
-            }
-        };
 
-        let dataset_group = dataset_group[0].clone();
+        let dataset_version = option_to_error(dataset_version_option, &id)?;
 
-        return self.project_id_of_dataset(dataset_group.id.clone()).await;
+        return self.project_id_of_dataset(dataset_version.id.clone()).await;
     }
 
     async fn project_id_of_object_group_version(&self, id: String) -> ResultWrapper<String> {
-        let dataset_groups_version_option: Option<Vec<ObjectGroupVersion>> = self
+        let dataset_groups_version_option: Option<ObjectGroupVersion> = self
             .database_handler
-            .find_by_key("id".to_string(), id.clone())
+            .find_one_by_key("id".to_string(), id.clone())
             .await?;
 
-        let object_group_versions = match dataset_groups_version_option {
-            Some(value) => value,
-            None => {
-                return Err::<String, Box<dyn std::error::Error + Send + Sync>>(Box::new(
-                    InvalidError::new(&format!(
-                        "Could not find datasetobjectgroup with id: {}",
-                        id.to_string()
-                    )),
-                ));
-            }
-        };
+        let object_group_version = option_to_error(dataset_groups_version_option, &id)?;
 
-        let object_group_version = object_group_versions[0].clone();
-        let dataset_id = object_group_version.datasete_id;
-
-        let project_id = self.project_id_of_dataset(dataset_id).await?;
+        let project_id = self
+            .project_id_of_dataset(object_group_version.datasete_id)
+            .await?;
         Ok(project_id)
     }
 }
@@ -188,9 +134,9 @@ impl<T: Database> AuthHandler for ProjectAuthzHandler<T> {
             }
         };
 
-        let project_option: Option<Vec<ProjectEntry>> = match self
+        let project_option: Option<ProjectEntry> = match self
             .database_handler
-            .find_by_key("id".to_string(), project_id)
+            .find_one_by_key("id".to_string(), project_id.clone())
             .await
         {
             Ok(value) => value,
@@ -200,14 +146,7 @@ impl<T: Database> AuthHandler for ProjectAuthzHandler<T> {
                 ));
             }
         };
-        let project = match project_option {
-            Some(value) => value[0].clone(),
-            None => {
-                return Err(tonic::Status::internal(
-                    "could not authorize requested action",
-                ));
-            }
-        };
+        let project = option_to_error(project_option, &project_id)?;
 
         let user_id = self.user_id(metadata).await?;
 
@@ -261,6 +200,7 @@ struct InvalidError {
     details: String,
 }
 
+#[allow(dead_code)]
 impl InvalidError {
     fn new(msg: &str) -> InvalidError {
         InvalidError {
@@ -278,5 +218,21 @@ impl fmt::Display for InvalidError {
 impl Error for InvalidError {
     fn description(&self) -> &str {
         &self.details
+    }
+}
+
+fn option_to_error<'de, T: DatabaseModel<'de>>(
+    option: Option<T>,
+    id: &str,
+) -> std::result::Result<T, tonic::Status> {
+    match option {
+        Some(value) => return Ok(value),
+        None => {
+            let type_name = T::get_model_name().unwrap();
+            return Err(tonic::Status::internal(format!(
+                "could find {} with id {}",
+                type_name, id
+            )));
+        }
     }
 }

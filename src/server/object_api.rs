@@ -8,7 +8,14 @@ use scienceobjectsdb_rust_api::sciobjectsdbapi::{
 use scienceobjectsdb_rust_api::sciobjectsdbapi::{models::Empty, services};
 use tonic::Response;
 
-use crate::{auth::authenticator::AuthHandler, database::{common_models::{Resource, Right, Status}, database::{Database, ObjectGroupIDType}, dataset_object_group::ObjectGroup}};
+use crate::{
+    auth::authenticator::AuthHandler,
+    database::{
+        common_models::{Resource, Right, Status},
+        database::Database,
+        dataset_object_group::ObjectGroup,
+    },
+};
 use crate::{
     database::dataset_object_group::ObjectGroupVersion,
     objectstorage::objectstorage::StorageHandler,
@@ -140,9 +147,9 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
             )
             .await?;
 
-        let object_group_option: Option<Vec<ObjectGroup>> = match self
+        let object_group_vec: Option<ObjectGroup> = match self
             .mongo_client
-            .find_by_key(
+            .find_one_by_key(
                 "id".to_string(),
                 add_version_request.object_group_id.clone(),
             )
@@ -157,16 +164,14 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
             }
         };
 
-        let object_group_vec = match object_group_option {
-            Some(value) => value,
+        let object_group = match object_group_vec {
+            Some(value) => {value}
             None => {
                 return Err(tonic::Status::internal(
-                    "could not find object group of object group id",
+                    "could not find object group from object group id",
                 ));
             }
         };
-
-        let object_group = &object_group_vec[0];
 
         let create_group_version_request = match &add_version_request.group_version {
             Some(value) => value,
@@ -244,9 +249,9 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
 
         let id = request.into_inner().id;
 
-        let object_group_option: Option<Vec<ObjectGroup>> = match self
+        let object_group_option: Option<ObjectGroup> = match self
             .mongo_client
-            .find_by_key("id".to_string(), id.clone())
+            .find_one_by_key("id".to_string(), id.clone())
             .await
         {
             Ok(value) => value,
@@ -266,10 +271,8 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
             }
         };
 
-        let object = &object_group[0];
-
         let response = services::GetObjectGroupVersionResponse {
-            object_group: Some(object.to_proto()),
+            object_group: Some(object_group.to_proto()),
             object_group_version: None,
         };
 

@@ -19,7 +19,7 @@ pub trait Database: Send + Sync {
         &self,
         key: String,
         value: String,
-    ) -> ResultWrapper<Option<Vec<T>>>;
+    ) -> ResultWrapper<Vec<T>>;
     async fn find_one_by_key<'de, T: DatabaseModel<'de>>(
         &self,
         key: String,
@@ -28,7 +28,11 @@ pub trait Database: Send + Sync {
     async fn store<'de, T: DatabaseModel<'de>>(&self, value: T) -> ResultWrapper<T>;
     async fn add_user(&self, request: &AddUserToProjectRequest) -> ResultWrapper<()>;
     async fn find_object(&self, id: String) -> ResultWrapper<DatasetObject>;
-    async fn update_field<'de, T: DatabaseModel<'de>, Y: Deserialize<'de> + Serialize + Send + Sync>(
+    async fn update_field<
+        'de,
+        T: DatabaseModel<'de>,
+        Y: Deserialize<'de> + Serialize + Send + Sync,
+    >(
         &self,
         find_key: String,
         find_value: String,
