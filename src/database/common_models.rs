@@ -1,7 +1,7 @@
 use std::time::SystemTime;
 
 use async_trait::async_trait;
-use mongodb::bson::{DateTime, Document, Timestamp, doc, from_document, to_document};
+use mongodb::bson::{doc, from_document, to_document, DateTime, Document, Timestamp};
 use serde::{Deserialize, Serialize};
 
 use scienceobjectsdb_rust_api::sciobjectsdbapi::models;
@@ -59,29 +59,27 @@ pub enum Status {
     Updating,
     Archived,
     Deleting,
-
 }
 
 pub fn to_status(proto_status: &models::Status) -> Status {
     match proto_status {
-        models::Status::Initiating => {return Status::Initializing}
-        models::Status::Available => {return Status::Available}
-        models::Status::Updating => {return Status::Updating}
-        models::Status::Archived => {return Status::Archived}
-        models::Status::Deleting => {return Status::Deleting}
+        models::Status::Initiating => return Status::Initializing,
+        models::Status::Available => return Status::Available,
+        models::Status::Updating => return Status::Updating,
+        models::Status::Archived => return Status::Archived,
+        models::Status::Deleting => return Status::Deleting,
     }
 }
 
 pub fn to_proto_status(status: &Status) -> models::Status {
     match status {
-        Status::Available => {return models::Status::Available}
-        Status::Initializing => {return models::Status::Initiating}
-        Status::Updating => {return models::Status::Updating}
-        Status::Archived => {return  models::Status::Archived}
-        Status::Deleting => {return models::Status::Deleting}
+        Status::Available => return models::Status::Available,
+        Status::Initializing => return models::Status::Initiating,
+        Status::Updating => return models::Status::Updating,
+        Status::Archived => return models::Status::Archived,
+        Status::Deleting => return models::Status::Deleting,
     }
 }
-
 
 impl Default for Status {
     fn default() -> Self {
@@ -340,7 +338,6 @@ pub fn to_proto_version(version: &Version) -> models::Version {
 
     return version;
 }
-
 
 pub fn to_proto_datetime(datetime: &DateTime) -> prost_types::Timestamp {
     let system_date_time = SystemTime::from(datetime.0);

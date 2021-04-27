@@ -342,7 +342,6 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
 
         let id = request.into_inner().id;
 
-
         let object_group_version_option: Option<ObjectGroupVersion> = match self
             .mongo_client
             .find_one_by_key("id".to_string(), id.clone())

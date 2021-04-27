@@ -5,7 +5,13 @@ use mongodb::bson::DateTime;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::{models, services};
 use serde::{Deserialize, Serialize};
 
-use super::{common_models::{DatabaseModel, Label, Location, Metadata, Origin, Status, Version, to_labels, to_metadata, to_proto_labels, to_proto_metadata, to_proto_status}, database::Database};
+use super::{
+    common_models::{
+        to_labels, to_metadata, to_proto_labels, to_proto_metadata, to_proto_status, DatabaseModel,
+        Label, Location, Metadata, Origin, Status, Version,
+    },
+    database::Database,
+};
 
 use super::common_models;
 

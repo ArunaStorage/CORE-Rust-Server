@@ -818,9 +818,9 @@ dependencies = [
 
 [[package]]
 name = "libc"
-version = "0.2.93"
+version = "0.2.94"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9385f66bf6105b241aa65a61cb923ef20efc665cb9f9bb50ac2f0c4b7f378d41"
+checksum = "18794a8ad5b29321f790b55d93dfba91e125cb1a9edbd4f8e3150acc771c1a5e"
 
 [[package]]
 name = "linked-hash-map"
@@ -1092,9 +1092,9 @@ dependencies = [
 
 [[package]]
 name = "os_info"
-version = "3.0.2"
+version = "3.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4181c9203e70e66f39def4240a7e33f74d1d95b42c08320f9ac298c580934ab2"
+checksum = "43b81dbdaffac3b1f0a97028ba368f32e3a63aa675548fc52f923e803e67961b"
 dependencies = [
  "log",
  "winapi",
@@ -1605,7 +1605,7 @@ dependencies = [
 [[package]]
 name = "scienceobjectsdb_rust_api"
 version = "0.1.0"
-source = "git+https://github.com/ScienceObjectsDB/rust-api?branch=main#d9745777278519635e1eab3dd1161cc9021a5513"
+source = "git+https://github.com/ScienceObjectsDB/rust-api?branch=main#a00f3de40f6ec3645085d33fe68b9da1f6c9aab7"
 dependencies = [
  "prost",
  "prost-derive",

@@ -4,7 +4,10 @@ use serde::{Deserialize, Serialize};
 use chrono::prelude::*;
 use mongodb::bson::DateTime;
 
-use super::common_models::{DatabaseModel, Label, Metadata, Status, to_labels, to_metadata, to_proto_labels, to_proto_metadata, to_proto_status};
+use super::common_models::{
+    to_labels, to_metadata, to_proto_labels, to_proto_metadata, to_proto_status, DatabaseModel,
+    Label, Metadata, Status,
+};
 
 type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
