@@ -6,6 +6,7 @@ use mongodb::{
     options::{ClientOptions, FindOptions, UpdateOptions},
     Client,
 };
+use serde::{Deserialize, Serialize};
 use std::env;
 
 use std::{
@@ -247,19 +248,21 @@ impl Database for MongoHandler {
         return Ok(object.objects[0].clone());
     }
 
-    async fn update_field<'de, T: DatabaseModel<'de>>(
+    async fn update_field<'de, T: DatabaseModel<'de>, Y: Deserialize<'de> + Serialize + Send + Sync>(
         &self,
         find_key: String,
         find_value: String,
         update_field: String,
-        update_value: String,
+        update_value: Y,
     ) -> ResultWrapper<i64> {
         let filter = doc! {
             find_key: find_value,
         };
 
+        let value_doc = to_document(&update_value)?;
+
         let update = doc! {
-            update_field: update_value,
+            update_field: value_doc,
         };
 
         match self

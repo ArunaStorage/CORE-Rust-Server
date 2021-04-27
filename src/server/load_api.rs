@@ -1,7 +1,6 @@
 use crate::{auth::authenticator::AuthHandler, database::database::Database};
 use std::sync::Arc;
 
-use models::ObjectGroupVersion;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services::CreateLinkResponse;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::{
     models::{Empty, Object},
@@ -195,7 +194,7 @@ impl<T: Database> ObjectLoad for LoadServer<T> {
             .await?;
         let updated_fields_count = match self
             .mongo_client
-            .update_field::<ObjectGroup>(
+            .update_field::<ObjectGroup, String>(
                 "objects.id".to_string(),
                 object.id.clone(),
                 "objects.$".to_string(),

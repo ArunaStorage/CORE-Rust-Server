@@ -1,21 +1,14 @@
 use std::sync::Arc;
 
-use scienceobjectsdb_rust_api::sciobjectsdbapi::services;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services::dataset_objects_service_server::DatasetObjectsService;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::{
     models,
     services::{CreateObjectGroupWithVersionRequest, GetObjectGroupVersionResponse},
 };
+use scienceobjectsdb_rust_api::sciobjectsdbapi::{models::Empty, services};
 use tonic::Response;
 
-use crate::{
-    auth::authenticator::AuthHandler,
-    database::{
-        common_models::{Resource, Right},
-        database::{Database, ObjectGroupIDType},
-        dataset_object_group::ObjectGroup,
-    },
-};
+use crate::{auth::authenticator::AuthHandler, database::{common_models::{Resource, Right, Status}, database::{Database, ObjectGroupIDType}, dataset_object_group::ObjectGroup}};
 use crate::{
     database::dataset_object_group::ObjectGroupVersion,
     objectstorage::objectstorage::StorageHandler,
@@ -107,12 +100,24 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
             }
         };
 
-        self.mongo_client.update_field::<ObjectGroup>(
-            "id".to_string(),
-            inserted_object_group.id.clone(),
-            "head_id".to_string(),
-            inserted_group_version.id.to_string(),
-        );
+        let _updated_values = match self
+            .mongo_client
+            .update_field::<ObjectGroup, String>(
+                "id".to_string(),
+                inserted_object_group.id.clone(),
+                "head_id".to_string(),
+                inserted_group_version.id.to_string(),
+            )
+            .await
+        {
+            Ok(value) => value,
+            Err(e) => {
+                log::error!("{:?}", e);
+                return Err(tonic::Status::internal(format!(
+                    "could not update head_ref of object group"
+                )));
+            }
+        };
 
         response.object_group_version = Some(inserted_group_version.to_proto());
 
@@ -182,7 +187,9 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
             Ok(value) => value,
             Err(e) => {
                 log::error!("{:?}", e);
-                return Err(tonic::Status::internal(format!("{:?}", e)));
+                return Err(tonic::Status::internal(format!(
+                    "could not create object group version from proto create message"
+                )));
             }
         };
 
@@ -190,7 +197,9 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
             Ok(value) => value,
             Err(e) => {
                 log::error!("{:?}", e);
-                return Err(tonic::Status::internal(format!("{:?}", e)));
+                return Err(tonic::Status::internal(format!(
+                    "could not update head_ref of object group"
+                )));
             }
         };
 
@@ -199,12 +208,22 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
             object_group_version: Some(inserted_group_version.to_proto()),
         };
 
-        self.mongo_client.update_field::<ObjectGroup>(
-            "id".to_string(),
-            add_version_request.object_group_id.clone(),
-            "head_id".to_string(),
-            inserted_group_version.id.to_string(),
-        );
+        let _updated_values = match self
+            .mongo_client
+            .update_field::<ObjectGroup, String>(
+                "id".to_string(),
+                add_version_request.object_group_id.clone(),
+                "head_id".to_string(),
+                inserted_group_version.id.to_string(),
+            )
+            .await
+        {
+            Ok(value) => value,
+            Err(e) => {
+                log::error!("{:?}", e);
+                return Err(tonic::Status::internal(format!("{:?}", e)));
+            }
+        };
 
         return Ok(Response::new(get_object_group_response));
     }
@@ -371,8 +390,36 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
 
     async fn finish_object_upload(
         &self,
-        _request: tonic::Request<models::Id>,
+        request: tonic::Request<models::Id>,
     ) -> Result<Response<models::Empty>, tonic::Status> {
-        todo!()
+        let id = request.get_ref();
+
+        self.auth_handler
+            .authorize(
+                request.metadata(),
+                Resource::Object,
+                Right::Read,
+                id.id.clone(),
+            )
+            .await?;
+
+        let _updated_values = match self
+            .mongo_client
+            .update_field::<ObjectGroup, Status>(
+                "id".to_string(),
+                id.id.clone(),
+                "status".to_string(),
+                Status::Available,
+            )
+            .await
+        {
+            Ok(value) => value,
+            Err(e) => {
+                log::error!("{:?}", e);
+                return Err(tonic::Status::internal(format!("{:?}", e)));
+            }
+        };
+
+        Ok(Response::new(Empty {}))
     }
 }

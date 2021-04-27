@@ -1,7 +1,7 @@
 use std::time::SystemTime;
 
 use async_trait::async_trait;
-use mongodb::bson::{doc, from_document, to_document, DateTime, Document, Timestamp};
+use mongodb::bson::{doc, from_document, to_document, DateTime, Document};
 use serde::{Deserialize, Serialize};
 
 use scienceobjectsdb_rust_api::sciobjectsdbapi::models;
@@ -61,6 +61,7 @@ pub enum Status {
     Deleting,
 }
 
+#[allow(dead_code)]
 pub fn to_status(proto_status: &models::Status) -> Status {
     match proto_status {
         models::Status::Initiating => return Status::Initializing,
