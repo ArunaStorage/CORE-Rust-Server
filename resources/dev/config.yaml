@@ -11,5 +11,7 @@ Server:
 Storage:
   Endpoint: "https://s3.computational.bio.uni-giessen.de"
   Bucket: "dev-objectstorage"
-Oauth2Auth:
-  UserInfoEndpoint: "https://keycloak.infra.ingress.rancher.computational.bio/auth/realms/BioDataDB/protocol/openid-connect/userinfo"
+Authentication:
+  Type: oauth2
+  OAuth2Auth:
+    UserInfoEndpoint: "https://keycloak.infra.ingress.rancher.computational.bio/auth/realms/BioDataDB/protocol/openid-connect/userinfo"

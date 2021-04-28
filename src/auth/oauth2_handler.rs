@@ -17,7 +17,7 @@ impl OAuth2Handler {
         let endpoint_url = SETTINGS
             .read()
             .unwrap()
-            .get_str("Oauth2Auth.UserInfoEndpoint")?;
+            .get_str("Authentication.OAuth2Auth.UserInfoEndpoint")?;
 
         Ok(OAuth2Handler {
             user_info_endpoint_url: endpoint_url,

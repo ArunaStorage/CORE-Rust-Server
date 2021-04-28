@@ -11,7 +11,7 @@ use tonic::transport::Server;
 use crate::objectstorage::s3_objectstorage::S3Handler;
 
 use crate::auth::{
-    project_authorization_handler::ProjectAuthzHandler, test_authenticator::TestAuthenticator,
+    project_authorization_handler::ProjectAuthzHandler, test_authenticator::TestAuthenticator, authenticator::AuthHandler
 };
 
 use super::{
@@ -45,8 +45,9 @@ pub async fn start_server() -> ResultWrapper<()> {
     let auth_type_handler = SETTINGS.read().unwrap().get_str("Authentication.Type")?;
     let auth_type_handler_str = auth_type_handler.as_str();
 
-    let project_authz_handler = match auth_type_handler_str {
+    let project_authz_handler: Arc<dyn AuthHandler> = match auth_type_handler_str {
         "debug" => Arc::new(TestAuthenticator {}),
+        "oauth2" => Arc::new(ProjectAuthzHandler::new(mongo_handler.clone())?),
         _ => panic!("Could not parse auth type: {}", auth_type_handler),
     };
 

@@ -11,3 +11,5 @@ Server:
 Storage:
   Endpoint: "http://minio:9000"
   Bucket: "test-bucket"
+Authentication:
+  Type: debug
