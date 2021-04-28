@@ -138,7 +138,7 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
             proto_object_groups.push(proto_object_group);
         }
 
-        let object_group_list = services::ObjectGroupList{
+        let object_group_list = services::ObjectGroupList {
             object_groups: proto_object_groups,
         };
 

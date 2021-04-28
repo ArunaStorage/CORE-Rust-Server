@@ -165,7 +165,7 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
         };
 
         let object_group = match object_group_vec {
-            Some(value) => {value}
+            Some(value) => value,
             None => {
                 return Err(tonic::Status::internal(
                     "could not find object group from object group id",
@@ -424,5 +424,73 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
         };
 
         Ok(Response::new(Empty {}))
+    }
+
+    async fn get_object_group_versions(
+        &self,
+        request: tonic::Request<models::Id>,
+    ) -> Result<Response<services::GetObjectGroupVersionsResponse>, tonic::Status> {
+        let id = request.get_ref();
+
+        self.auth_handler
+            .authorize(
+                request.metadata(),
+                Resource::Object,
+                Right::Read,
+                id.id.clone(),
+            )
+            .await?;
+
+        let object_group_option: Option<ObjectGroup> = match self
+            .mongo_client
+            .find_one_by_key("id".to_string(), id.id.clone())
+            .await
+        {
+            Ok(value) => value,
+            Err(e) => {
+                log::error!("{:?}", e);
+                return Err(tonic::Status::internal(format!(
+                    "Error when reading object group"
+                )));
+            }
+        };
+
+        let object_group: ObjectGroup = match object_group_option {
+            Some(value) => value,
+            None => {
+                return Err(tonic::Status::internal(format!(
+                    "Object group with id: {} not found",
+                    id.id.clone()
+                )));
+            }
+        };
+
+        let id = object_group.id.clone();
+
+        let object_group_versions: Vec<ObjectGroupVersion> = match self
+            .mongo_client
+            .find_by_key("object_group_id".to_string(), id)
+            .await
+        {
+            Ok(value) => value,
+            Err(e) => {
+                log::error!("{:?}", e);
+                return Err(tonic::Status::internal(format!(
+                    "Error when reading object group versions"
+                )));
+            }
+        };
+
+        let object_group_versions_proto = object_group_versions
+            .into_iter()
+            .map(|x| x.to_proto())
+            .collect::<Vec<models::ObjectGroupVersion>>();
+
+        let proto_response = services::GetObjectGroupVersionsResponse{
+            object_group: Some(object_group.to_proto()),
+            object_group_version: object_group_versions_proto,
+        };
+
+        return Ok(Response::new(proto_response))
     }
 }

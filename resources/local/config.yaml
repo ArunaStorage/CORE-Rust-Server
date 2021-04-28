@@ -1,13 +1,15 @@
 Database:
   Mongo:
     Use: true
-    Host: core-mongo-mongodb-sharded.mongo
+    Host: 127.0.0.1
     Port: 27017
-    Username: biodiv
-    Database: "dev-database"
+    Username: root
+    Database: "test123"
 Server:
   Host: "127.0.0.1"
   Port: 50051
 Storage:
   Endpoint: "https://s3.computational.bio.uni-giessen.de"
   Bucket: "dev-objectstorage"
+Authentication:
+  Type: debug

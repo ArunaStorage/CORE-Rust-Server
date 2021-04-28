@@ -77,12 +77,12 @@ impl ObjectGroup {
 pub struct ObjectGroupVersion {
     pub id: String,
     pub datasete_id: String,
+    pub object_group_id: String,
     pub date_create: DateTime,
     pub labels: Vec<Label>,
     pub metadata: Vec<Metadata>,
     pub objects_count: i64,
     pub objects: Vec<DatasetObject>,
-    pub version_ref_id: String,
     pub version: Version,
 }
 
@@ -97,7 +97,7 @@ impl ObjectGroupVersion {
         request: &services::CreateObjectGroupVersionRequest,
         bucket: String,
         dataset_id: String,
-        object_group_version_ref_id: String,
+        object_group: String,
 
         _handler: Arc<T>,
     ) -> ResultWrapper<Self> {
@@ -126,7 +126,7 @@ impl ObjectGroupVersion {
             date_create: DateTime::from(timestamp),
             objects: objects,
             objects_count: objects_count as i64,
-            version_ref_id: object_group_version_ref_id,
+            object_group_id: object_group,
             version: Default::default(),
         };
 
@@ -147,7 +147,7 @@ impl ObjectGroupVersion {
             labels: to_proto_labels(&self.labels),
             metadata: to_proto_metadata(&self.metadata),
             objects: proto_objects,
-            version_ref_id: self.version_ref_id.clone(),
+            object_group_id: self.object_group_id.clone(),
             ..Default::default()
         };
 

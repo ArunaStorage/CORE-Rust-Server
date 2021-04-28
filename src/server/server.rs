@@ -10,7 +10,9 @@ use tonic::transport::Server;
 
 use crate::objectstorage::s3_objectstorage::S3Handler;
 
-use crate::auth::project_authorization_handler::ProjectAuthzHandler;
+use crate::auth::{
+    project_authorization_handler::ProjectAuthzHandler, test_authenticator::TestAuthenticator,
+};
 
 use super::{
     dataset_api::DatasetsServer, load_api::LoadServer, object_api::ObjectServer,
@@ -40,7 +42,13 @@ pub async fn start_server() -> ResultWrapper<()> {
         s3_bucket.clone(),
     ));
 
-    let project_authz_handler = Arc::new(ProjectAuthzHandler::new(mongo_handler.clone())?);
+    let auth_type_handler = SETTINGS.read().unwrap().get_str("Authentication.Type")?;
+    let auth_type_handler_str = auth_type_handler.as_str();
+
+    let project_authz_handler = match auth_type_handler_str {
+        "debug" => Arc::new(TestAuthenticator {}),
+        _ => panic!("Could not parse auth type: {}", auth_type_handler),
+    };
 
     let project_endpoints = ProjectServer {
         mongo_client: mongo_handler.clone(),

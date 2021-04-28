@@ -1,10 +1,8 @@
 use std::sync::Arc;
 
+use scienceobjectsdb_rust_api::sciobjectsdbapi::models::{self};
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services::project_api_server::ProjectApi;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::{models::Project, services};
-use scienceobjectsdb_rust_api::sciobjectsdbapi::{
-    models::{self},
-};
 use tonic::Response;
 
 use crate::{
