@@ -1,6 +1,7 @@
-use std::sync::Arc;
+use std::{sync::Arc};
 
-use scienceobjectsdb_rust_api::sciobjectsdbapi::models;
+use futures::future::join_all;
+use scienceobjectsdb_rust_api::sciobjectsdbapi::models::{self};
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services::dataset_service_server::DatasetService;
 use tonic::Response;
@@ -11,7 +12,7 @@ use crate::{
         common_models::{Resource, Right},
         database::Database,
         dataset_model::DatasetEntry,
-        dataset_object_group::ObjectGroup,
+        dataset_object_group::{ObjectGroup, ObjectGroupVersion},
         dataset_version::DatasetVersion,
     },
 };
@@ -200,10 +201,151 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
         return Ok(Response::new(version_proto));
     }
 
-    async fn dataset_version_object_groups(
+    async fn dataset_version_object_group_versions(
         &self,
-        _request: tonic::Request<models::Id>,
-    ) -> Result<Response<services::ObjectGroupList>, tonic::Status> {
-        todo!()
+        request: tonic::Request<models::Id>,
+    ) -> Result<tonic::Response<services::ObjectGroupVersions>, tonic::Status> {
+        let id = request.get_ref();
+
+        self.auth_handler
+        .authorize(
+            request.metadata(),
+            Resource::DatasetVersion,
+            Right::Write,
+            id.id.clone(),
+        )
+        .await?;
+
+        let dataset_version_option: Option<DatasetVersion> = match self.mongo_client.find_one_by_key("id".to_string(), id.id.clone()).await {
+            Ok(value) => {value}
+            Err(e) => {
+                log::error!("{:?}", e);
+                return Err(tonic::Status::internal(format!("error when reading specified dataset version: {}", id.id.clone())));
+            }
+        };
+
+        let dataset_version = match dataset_version_option {
+            Some(value) => value,
+            None => {
+                return Err(tonic::Status::internal(
+                    "could not read dataset version",
+                ));
+            }
+        };
+
+        let mut object_versions = Vec::new();
+        let mut object_group_id_chunks = dataset_version.object_group_ids.chunks(100);
+
+        while let Some(object_group_version_ids) = object_group_id_chunks.next() {
+            let mut current_object_group_version_futures = Vec::new();
+            for object_group_version_id in object_group_version_ids {
+                let object_group_future = self.mongo_client.find_one_by_key::<ObjectGroupVersion>(
+                    "id".to_string(),
+                    object_group_version_id.clone(),
+                );
+                current_object_group_version_futures.push(object_group_future);
+            }
+
+            let objects_version_results = join_all(current_object_group_version_futures).await;
+
+            for group_version_result in objects_version_results {
+                let group_version_option = match group_version_result {
+                    Ok(value) => value,
+                    Err(e) => {
+                        log::error!("{:?}", e);
+                        return Err(tonic::Status::internal(
+                            "error reading object group version",
+                        ));
+                    }
+                };
+
+                let object_version = match group_version_option {
+                    Some(value) => value,
+                    None => {
+                        return Err(tonic::Status::internal(
+                            "could not find object group version",
+                        ));
+                    }
+                };
+
+                object_versions.push(object_version.to_proto());
+            }
+        }
+        
+        return Ok(Response::new(services::ObjectGroupVersions {
+            object_group_version: object_versions,
+        }));
+
+    }
+
+    async fn current_object_group_versions(
+        &self,
+        request: tonic::Request<models::Id>,
+    ) -> Result<Response<services::ObjectGroupVersions>, tonic::Status> {
+        let id = request.get_ref();
+
+        self.auth_handler
+            .authorize(
+                request.metadata(),
+                Resource::Dataset,
+                Right::Write,
+                id.id.clone(),
+            )
+            .await?;
+
+        let object_groups: Vec<ObjectGroup> = match self
+            .mongo_client
+            .find_by_key("dataset_id".to_string(), id.id.clone())
+            .await
+        {
+            Ok(value) => value,
+            Err(e) => {
+                log::error!("{:?}", e);
+                return Err(tonic::Status::internal("Could not create dataset version"));
+            }
+        };
+
+        let mut object_versions = Vec::new();
+
+        let mut group_chunk_iter = object_groups.chunks(100);
+        while let Some(object_group_chunk) = group_chunk_iter.next() {
+            let mut current_object_group_version_futures = Vec::new();
+            for object_group in object_group_chunk {
+                let object_group_future = self.mongo_client.find_one_by_key::<ObjectGroupVersion>(
+                    "id".to_string(),
+                    object_group.head_id.clone(),
+                );
+                current_object_group_version_futures.push(object_group_future);
+            }
+
+            let objects_version_results = join_all(current_object_group_version_futures).await;
+
+            for group_version_result in objects_version_results {
+                let group_version_option = match group_version_result {
+                    Ok(value) => value,
+                    Err(e) => {
+                        log::error!("{:?}", e);
+                        return Err(tonic::Status::internal(
+                            "error reading object group version",
+                        ));
+                    }
+                };
+
+                let object_version = match group_version_option {
+                    Some(value) => value,
+                    None => {
+                        return Err(tonic::Status::internal(
+                            "could not find object group version",
+                        ));
+                    }
+                };
+
+                object_versions.push(object_version.to_proto());
+            }
+        };
+
+        return Ok(Response::new(services::ObjectGroupVersions {
+            object_group_version: object_versions,
+        }));
     }
 }

@@ -429,7 +429,7 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
     async fn get_object_group_versions(
         &self,
         request: tonic::Request<models::Id>,
-    ) -> Result<Response<services::GetObjectGroupVersionsResponse>, tonic::Status> {
+    ) -> Result<Response<services::ObjectGroupVersions>, tonic::Status> {
         let id = request.get_ref();
 
         self.auth_handler
@@ -486,11 +486,10 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
             .map(|x| x.to_proto())
             .collect::<Vec<models::ObjectGroupVersion>>();
 
-        let proto_response = services::GetObjectGroupVersionsResponse{
-            object_group: Some(object_group.to_proto()),
+        let proto_response = services::ObjectGroupVersions {
             object_group_version: object_group_versions_proto,
         };
 
-        return Ok(Response::new(proto_response))
+        return Ok(Response::new(proto_response));
     }
 }

@@ -11,7 +11,8 @@ use tonic::transport::Server;
 use crate::objectstorage::s3_objectstorage::S3Handler;
 
 use crate::auth::{
-    project_authorization_handler::ProjectAuthzHandler, test_authenticator::TestAuthenticator, authenticator::AuthHandler
+    authenticator::AuthHandler, project_authorization_handler::ProjectAuthzHandler,
+    test_authenticator::TestAuthenticator,
 };
 
 use super::{

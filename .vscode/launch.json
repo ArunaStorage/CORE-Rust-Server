@@ -12,5 +12,8 @@
             "args": [],
             "cwd": "${workspaceFolder}"
         }
+    ],
+    "rust-analyzer.diagnostics.disabled": [
+        "unresolved-macro-call"
     ]
 }
