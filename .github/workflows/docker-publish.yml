@@ -47,16 +47,8 @@ jobs:
       - name: Build image
         run: docker build . --file Dockerfile --tag $IMAGE_NAME
 
-      - name: Log into github registry
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
-
       - name: Push image to github registry
         run: |
-          IMAGE_ID=docker.pkg.github.com/${{ github.repository }}/$IMAGE_NAME
-
-          # Change all uppercase to lowercase
-          IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
-
           # Strip git ref prefix from version
           VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
 
@@ -75,7 +67,7 @@ jobs:
           echo ${{ secrets.HARBORPW }}
           echo ${{ secrets.HARBORUSER }}
 
-          echo "${{ secrets.HARBORPW }}" | docker login harbor.computational.bio.uni-giessen.de -u ${{ secrets.HARBORUSER }} --password-stdin
+          echo "${{ secrets.HARBORPW }}" | docker login harbor.computational.bio.uni-giessen.de -u '${{ secrets.HARBORUSER }}'' --password-stdin
 
           QUAY_IMAGE_ID=harbor.computational.bio.uni-giessen.de/scienceobjectsdb/rust-server
 
