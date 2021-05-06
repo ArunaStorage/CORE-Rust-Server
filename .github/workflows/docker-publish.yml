@@ -72,6 +72,9 @@ jobs:
           docker tag $IMAGE_NAME $IMAGE_ID:$VERSION
           docker push $IMAGE_ID:$VERSION
 
+          echo ${{ secrets.HARBORPW }}
+          echo ${{ secrets.HARBORUSER }}
+
           echo "${{ secrets.HARBORPW }}" | docker login harbor.computational.bio.uni-giessen.de -u ${{ secrets.HARBORUSER }} --password-stdin
 
           QUAY_IMAGE_ID=harbor.computational.bio.uni-giessen.de/scienceobjectsdb/rust-server
