@@ -61,9 +61,6 @@ jobs:
           echo IMAGE_ID=$IMAGE_ID
           echo VERSION=$VERSION
 
-          echo ${{ secrets.HARBORPW }}
-          echo ${{ secrets.HARBORUSER }}
-
           echo "${{ secrets.HARBORPW }}" | docker login harbor.computational.bio.uni-giessen.de -u '${{ secrets.HARBORUSER }}'' --password-stdin
 
           HARBOR_IMAGE_ID=harbor.computational.bio.uni-giessen.de/scienceobjectsdb/rust-server
