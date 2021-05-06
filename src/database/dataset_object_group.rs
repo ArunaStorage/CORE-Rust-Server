@@ -30,10 +30,11 @@ pub struct ObjectGroup {
     pub metadata: Vec<Metadata>,
     pub status: Status,
     pub head_id: String,
+    pub revision_counter: i64,
 }
 
 impl DatabaseModel<'_> for ObjectGroup {
-    fn get_model_name() -> ResultWrapper<String> {
+    fn get_model_name() -> Result<String, tonic::Status> {
         Ok("ObjectGroup".to_string())
     }
 }
@@ -42,7 +43,7 @@ impl ObjectGroup {
     pub fn new_from_proto_create<T: Database>(
         request: &services::CreateObjectGroupRequest,
         _handler: Arc<T>,
-    ) -> ResultWrapper<Self> {
+    ) -> Result<Self, tonic::Status> {
         let uuid = uuid::Uuid::new_v4();
 
         let object_group = ObjectGroup {
@@ -52,13 +53,14 @@ impl ObjectGroup {
             dataset_id: request.dataset_id.clone(),
             status: Status::Initializing,
             metadata: to_metadata(&request.metadata),
+            revision_counter: 0,
             ..Default::default()
         };
 
         return Ok(object_group);
     }
 
-    pub fn to_proto(&self) -> models::ObjectGroup {
+    pub fn to_proto(&self) -> Result<models::ObjectGroup, tonic::Status> {
         let proto_object = models::ObjectGroup {
             id: self.id.clone(),
             dataset_id: self.dataset_id.clone(),
@@ -67,14 +69,15 @@ impl ObjectGroup {
             head_id: self.head_id.clone(),
             name: self.name.clone(),
             status: to_proto_status(&self.status) as i32,
+            current_revision: self.revision_counter,
         };
 
-        return proto_object;
+        return Ok(proto_object);
     }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
-pub struct ObjectGroupVersion {
+pub struct ObjectGroupRevision {
     pub id: String,
     pub datasete_id: String,
     pub object_group_id: String,
@@ -84,23 +87,22 @@ pub struct ObjectGroupVersion {
     pub objects_count: i64,
     pub objects: Vec<DatasetObject>,
     pub version: Version,
+    pub revision: i64,
+    pub dataset_versions: Vec<String>,
 }
 
-impl DatabaseModel<'_> for ObjectGroupVersion {
-    fn get_model_name() -> ResultWrapper<String> {
+impl DatabaseModel<'_> for ObjectGroupRevision {
+    fn get_model_name() -> Result<String, tonic::Status> {
         Ok("ObjectGroupVersion".to_string())
     }
 }
 
-impl ObjectGroupVersion {
-    pub fn new_from_proto_create<T: Database>(
-        request: &services::CreateObjectGroupVersionRequest,
+impl ObjectGroupRevision {
+    pub fn new_from_proto_create(
+        request: &services::CreateObjectGroupRevisionRequest,
+        object_group: &ObjectGroup,
         bucket: String,
-        dataset_id: String,
-        object_group: String,
-
-        _handler: Arc<T>,
-    ) -> ResultWrapper<Self> {
+    ) -> Result<Self, tonic::Status> {
         let uuid = uuid::Uuid::new_v4();
 
         let timestamp = Utc::now();
@@ -110,7 +112,7 @@ impl ObjectGroupVersion {
         for create_object_request in &request.objects {
             let object = DatasetObject::new_from_proto_create(
                 &create_object_request,
-                dataset_id.clone(),
+                object_group.dataset_id.clone(),
                 bucket.clone(),
             )?;
             objects.push(object);
@@ -118,22 +120,24 @@ impl ObjectGroupVersion {
 
         let objects_count = objects.len().clone();
 
-        let object_group = ObjectGroupVersion {
+        let object_group = ObjectGroupRevision {
             id: uuid.to_string(),
             labels: to_labels(&request.labels),
             metadata: to_metadata(&request.metadata),
-            datasete_id: dataset_id.clone(),
+            datasete_id: object_group.dataset_id.clone(),
             date_create: DateTime::from(timestamp),
             objects: objects,
             objects_count: objects_count as i64,
-            object_group_id: object_group,
+            object_group_id: object_group.id.clone(),
             version: Default::default(),
+            revision: object_group.revision_counter,
+            dataset_versions: Vec::new(),
         };
 
         return Ok(object_group);
     }
 
-    pub fn to_proto(&self) -> models::ObjectGroupVersion {
+    pub fn to_proto(&self) -> models::ObjectGroupRevision {
         let mut proto_objects = Vec::new();
 
         for object in &self.objects {
@@ -141,13 +145,14 @@ impl ObjectGroupVersion {
             proto_objects.push(proto_object);
         }
 
-        let proto_object = models::ObjectGroupVersion {
+        let proto_object = models::ObjectGroupRevision {
             id: self.id.clone(),
             dataset_id: self.datasete_id.clone(),
             labels: to_proto_labels(&self.labels),
             metadata: to_proto_metadata(&self.metadata),
             objects: proto_objects,
             object_group_id: self.object_group_id.clone(),
+            revision: self.revision,
             ..Default::default()
         };
 
@@ -169,7 +174,7 @@ pub struct DatasetObject {
 }
 
 impl DatabaseModel<'_> for DatasetObject {
-    fn get_model_name() -> ResultWrapper<String> {
+    fn get_model_name() -> Result<String, tonic::Status> {
         Ok("Object".to_string())
     }
 }
@@ -179,7 +184,7 @@ impl DatasetObject {
         request: &services::CreateObjectRequest,
         dataset_id: String,
         bucket: String,
-    ) -> ResultWrapper<Self> {
+    ) -> Result<Self, tonic::Status> {
         let timestamp = Utc::now();
         let uuid = uuid::Uuid::new_v4();
 

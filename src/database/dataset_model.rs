@@ -25,23 +25,25 @@ pub struct DatasetEntry {
 }
 
 impl DatabaseModel<'_> for DatasetEntry {
-    fn get_model_name() -> ResultWrapper<String> {
+    fn get_model_name() -> Result<String, tonic::Status> {
         Ok("Dataset".to_string())
     }
 }
 
 impl DatasetEntry {
-    pub fn new_from_proto_create(request: services::CreateDatasetRequest) -> ResultWrapper<Self> {
+    pub fn new_from_proto_create(
+        request: &services::CreateDatasetRequest,
+    ) -> Result<Self, tonic::Status> {
         let uuid = uuid::Uuid::new_v4();
         let timestamp = Utc::now();
 
         let dataset_entry = DatasetEntry {
             id: uuid.to_string(),
-            name: request.name,
+            name: request.name.clone(),
             created: DateTime::from(timestamp),
             is_public: false,
             labels: to_labels(&request.labels),
-            project_id: request.project_id,
+            project_id: request.project_id.clone(),
             metadata: to_metadata(&request.metadata),
             status: Status::Available,
             description: "".to_string(),

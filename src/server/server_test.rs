@@ -41,7 +41,6 @@ pub fn test_init() {
     let mut is_completed = INIT.is_completed();
     let wait_for_completion_wait = time::Duration::from_millis(500);
     while !is_completed {
-        dbg!("foo");
         thread::sleep(wait_for_completion_wait);
         is_completed = INIT.is_completed();
     }
@@ -74,10 +73,17 @@ mod server_test {
 
     use crate::auth::test_authenticator::TestAuthenticator;
 
-    #[tokio::test]
-    async fn full_test() {
-        test_init();
+    struct TestEndpointStruct {
+        project_handler: ProjectServer<MongoHandler>,
+        dataset_handler: DatasetsServer<MongoHandler>,
+        object_handler: ObjectServer<MongoHandler>,
+        load_handler: LoadServer<MongoHandler>,
+    }
 
+    const TEST_DATA_REV1: &'static str = "testdata-revision-1";
+    const TEST_DATA_REV2: &'static str = "testdata-revision-2";
+
+    async fn test_endpoint_structs() -> TestEndpointStruct {
         let s3_endpoint = SETTINGS
             .read()
             .unwrap()
@@ -106,12 +112,12 @@ mod server_test {
         };
 
         let dataset_endpoints = DatasetsServer {
-            mongo_client: mongo_handler.clone(),
+            database_client: mongo_handler.clone(),
             auth_handler: authz_handler.clone(),
         };
 
         let objects_endpoints = ObjectServer {
-            mongo_client: mongo_handler.clone(),
+            database_client: mongo_handler.clone(),
             object_handler: object_storage_handler.clone(),
             auth_handler: authz_handler.clone(),
         };
@@ -122,6 +128,17 @@ mod server_test {
             auth_handler: authz_handler.clone(),
         };
 
+        let endpoints = TestEndpointStruct {
+            dataset_handler: dataset_endpoints,
+            project_handler: project_endpoints,
+            object_handler: objects_endpoints,
+            load_handler: load_endpoints,
+        };
+
+        return endpoints;
+    }
+
+    async fn project_test(endpoints: &TestEndpointStruct) -> String {
         let create_project_request = Request::new(services::CreateProjectRequest {
             name: "testproject".to_string(),
             description: "Some description".to_string(),
@@ -134,39 +151,59 @@ mod server_test {
             ..Default::default()
         });
 
-        let project = project_endpoints
+        let project = endpoints
+            .project_handler
             .create_project(create_project_request)
             .await
             .unwrap()
             .into_inner();
 
-        let _project_2 = project_endpoints
+        let _project_2 = endpoints
+            .project_handler
             .create_project(create_project_request_2)
             .await
             .unwrap()
             .into_inner();
 
-        let user_projects = project_endpoints
-            .get_user_projects(Request::new(models::Empty::default()))
+        let found_projects = endpoints
+            .project_handler
+            .get_user_projects(Request::new(models::Empty {}))
             .await
-            .unwrap()
-            .into_inner();
-        if user_projects.projects.len() != 2 {
-            panic!("wrong number of projects found for user in test")
-        }
+            .unwrap();
 
+        if found_projects.get_ref().projects.len() != 2 {
+            panic!("wrong number of projects found for testuser")
+        };
+
+        return project.id.clone();
+    }
+
+    async fn dataset_test(test_project_id: String, endpoints: &TestEndpointStruct) -> String {
         let create_dataset_request = Request::new(services::CreateDatasetRequest {
-            project_id: project.id,
+            project_id: test_project_id,
             name: "testdataset".to_string(),
             ..Default::default()
         });
 
-        let dataset = dataset_endpoints
-            .create_new_dataset(create_dataset_request)
+        let dataset = endpoints
+            .dataset_handler
+            .create_dataset(create_dataset_request)
             .await
             .unwrap()
             .into_inner();
 
+        endpoints
+            .dataset_handler
+            .get_dataset(Request::new(models::Id {
+                id: dataset.id.clone(),
+            }))
+            .await
+            .unwrap();
+
+        return dataset.id.clone();
+    }
+
+    async fn object_group_test(test_dataset_id: String, endpoint: &TestEndpointStruct) -> String {
         let create_object_request = services::CreateObjectRequest {
             filename: "testobject.txt".to_string(),
             filetype: "txt".to_string(),
@@ -175,26 +212,27 @@ mod server_test {
         };
 
         let create_object_group_request =
-            Request::new(services::CreateObjectGroupWithVersionRequest {
+            Request::new(services::CreateObjectGroupWithRevisionRequest {
                 object_group: Some(services::CreateObjectGroupRequest {
-                    dataset_id: dataset.id.clone(),
+                    dataset_id: test_dataset_id,
                     name: "test_group".to_string(),
                     ..Default::default()
                 }),
-                object_group_version: Some(services::CreateObjectGroupVersionRequest {
+                object_group_version: Some(services::CreateObjectGroupRevisionRequest {
                     objects: vec![create_object_request],
                     ..Default::default()
                 }),
                 ..Default::default()
             });
 
-        let object_group = objects_endpoints
-            .create_object_group_with_version(create_object_group_request)
+        let object_group = endpoint
+            .object_handler
+            .create_object_group(create_object_group_request)
             .await
             .unwrap()
             .into_inner();
 
-        let object_id = object_group.object_group_version.unwrap().objects[0]
+        let object_id = object_group.object_group_revision.unwrap().objects[0]
             .id
             .clone();
 
@@ -202,17 +240,17 @@ mod server_test {
             id: object_id.clone(),
         });
 
-        let upload_link = load_endpoints
+        let upload_link = endpoint
+            .load_handler
             .create_upload_link(upload_request)
             .await
             .unwrap()
             .into_inner();
-        let test_data = "testdata";
 
         let client = reqwest::Client::new();
         let resp = client
             .put(upload_link.upload_link)
-            .body(test_data.clone())
+            .body(TEST_DATA_REV1.clone())
             .send()
             .await
             .unwrap();
@@ -232,7 +270,8 @@ mod server_test {
             id: object_id.clone(),
         });
 
-        let download_link = load_endpoints
+        let download_link = endpoint
+            .load_handler
             .create_download_link(download_request)
             .await
             .unwrap()
@@ -251,8 +290,21 @@ mod server_test {
         let data = resp.bytes().await.unwrap();
         let data_string = String::from_utf8(data.to_vec()).unwrap();
 
-        if data_string != test_data {
+        if data_string != TEST_DATA_REV1 {
             panic!("downloaded data does not match uploaded rata")
         }
+
+        return object_group.object_group.unwrap().id;
+    }
+
+    #[tokio::test]
+    async fn full_test() {
+        test_init();
+
+        let endpoints = test_endpoint_structs().await;
+
+        let project_id = project_test(&endpoints).await;
+        let dataset_id = dataset_test(project_id, &endpoints).await;
+        object_group_test(dataset_id.clone(), &endpoints).await;
     }
 }

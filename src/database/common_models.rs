@@ -4,6 +4,8 @@ use async_trait::async_trait;
 use mongodb::bson::{doc, from_document, to_document, DateTime, Document};
 use serde::{Deserialize, Serialize};
 
+use log::error;
+
 use scienceobjectsdb_rust_api::sciobjectsdbapi::models;
 
 use super::{dataset_model::DatasetEntry, dataset_object_group::ObjectGroup};
@@ -24,7 +26,7 @@ pub enum Resource {
     Dataset,
     DatasetVersion,
     ObjectGroup,
-    ObjectGroupVersion,
+    ObjectGroupRevision,
     Object,
 }
 
@@ -165,12 +167,20 @@ pub trait DatabaseModel<'de>: serde::Serialize + serde::de::DeserializeOwned + S
         Ok(document)
     }
 
-    fn new_from_document(document: Document) -> ResultWrapper<Self> {
-        let model: Self = from_document(document)?;
+    fn new_from_document(document: Document) -> Result<Self, tonic::Status> {
+        let model: Self = match from_document(document) {
+            Ok(value) => value,
+            Err(e) => {
+                error!("{:?}", e);
+                return Err(tonic::Status::internal(format!(
+                    "error when parsing documents"
+                )));
+            }
+        };
         Ok(model)
     }
 
-    fn get_model_name() -> ResultWrapper<String>;
+    fn get_model_name() -> Result<String, tonic::Status>;
 }
 
 #[async_trait]

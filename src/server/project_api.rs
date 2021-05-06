@@ -1,5 +1,9 @@
 use std::sync::Arc;
 
+use mongodb::bson::doc;
+use crate::server::util;
+
+
 use scienceobjectsdb_rust_api::sciobjectsdbapi::models::{self};
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services::project_api_server::ProjectApi;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::{models::Project, services};
@@ -72,19 +76,16 @@ impl<T: Database> ProjectApi for ProjectServer<T> {
             }
         };
 
-        let project_option: Option<ProjectEntry> = match self
-            .mongo_client
-            .find_one_by_key("id".to_string(), add_user.project_id.clone())
-            .await
-        {
-            Ok(value) => value,
-            Err(e) => {
-                log::error!("{:?}", e);
-                return Err(tonic::Status::internal("error while adding user"));
-            }
+        let query = doc! {
+            "id": add_user.project_id.as_str()
         };
 
-        let project = project_option.unwrap();
+        let project_option: Option<ProjectEntry> = self
+            .mongo_client
+            .find_one_by_key(query)
+            .await?;
+
+        let project = util::tonic_error_if_value_not_found(&project_option, add_user.project_id.as_str())?;
 
         return Ok(tonic::Response::new(project.to_proto_project()));
     }
@@ -103,17 +104,14 @@ impl<T: Database> ProjectApi for ProjectServer<T> {
             )
             .await?;
 
-        let datasets: Vec<DatasetEntry> = match self
-            .mongo_client
-            .find_by_key("project_id".to_string(), request.into_inner().id)
-            .await
-        {
-            Ok(value) => value,
-            Err(e) => {
-                log::error!("{:?}", e);
-                return Err(tonic::Status::internal(format!("{:?}", e)));
-            }
+        let query = doc! {
+            "project_id": get_request.id.as_str()
         };
+
+        let datasets: Vec<DatasetEntry> = self
+            .mongo_client
+            .find_by_key(query)
+            .await?;
 
         let mut proto_datasets = Vec::new();
         for entry in datasets {
@@ -136,17 +134,14 @@ impl<T: Database> ProjectApi for ProjectServer<T> {
         let _get_request = request.get_ref();
         let id = self.auth_handler.user_id(request.metadata()).await?;
 
-        let projects: Vec<ProjectEntry> = match self
-            .mongo_client
-            .find_by_key("users.user_id".to_string(), id)
-            .await
-        {
-            Ok(value) => value,
-            Err(e) => {
-                log::error!("{:?}", e);
-                return Err(tonic::Status::internal("could not read user projects"));
-            }
+        let query = doc! {
+            "users.user_id": id.as_str()
         };
+
+        let projects: Vec<ProjectEntry> = self
+            .mongo_client
+            .find_by_key(query)
+            .await?;
 
         let mut proto_entries: Vec<Project> = Vec::new();
 
@@ -165,6 +160,13 @@ impl<T: Database> ProjectApi for ProjectServer<T> {
         &self,
         _request: tonic::Request<models::Id>,
     ) -> Result<tonic::Response<models::Empty>, tonic::Status> {
+        todo!()
+    }
+
+    async fn get_project(
+            &self,
+            request: tonic::Request<models::Id>,
+        ) -> Result<Response<Project>, tonic::Status> {
         todo!()
     }
 }

@@ -1,6 +1,8 @@
 use crate::{auth::authenticator::AuthHandler, database::database::Database};
 use std::sync::Arc;
 
+use mongodb::bson::doc;
+
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services::CreateLinkResponse;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::{
     models::{Empty, Object},
@@ -41,17 +43,18 @@ impl<T: Database> ObjectLoad for LoadServer<T> {
             )
             .await?;
 
-        let object_groups: Vec<dataset_object_group::ObjectGroupVersion> = match self
-            .mongo_client
-            .find_by_key("objects.id".to_string(), upload_object.id.clone())
-            .await
-        {
-            Ok(value) => value,
-            Err(e) => {
-                log::error!("{:?}", e);
-                return Err(tonic::Status::internal(format!("{:?}", e)));
-            }
+        let query = doc! {
+            "objects.id": upload_object.id.clone()
         };
+
+        let object_groups: Vec<dataset_object_group::ObjectGroupRevision> =
+            match self.mongo_client.find_by_key(query).await {
+                Ok(value) => value,
+                Err(e) => {
+                    log::error!("{:?}", e);
+                    return Err(tonic::Status::internal(format!("{:?}", e)));
+                }
+            };
 
         for object_group in object_groups {
             for object in object_group.objects {
@@ -99,17 +102,18 @@ impl<T: Database> ObjectLoad for LoadServer<T> {
             )
             .await?;
 
-        let object_groups: Vec<dataset_object_group::ObjectGroupVersion> = match self
-            .mongo_client
-            .find_by_key("objects.id".to_string(), download_object.id.clone())
-            .await
-        {
-            Ok(value) => value,
-            Err(e) => {
-                log::error!("{:?}", e);
-                return Err(tonic::Status::internal(format!("{:?}", e)));
-            }
+        let query = doc! {
+            "objects.id": download_object.id.clone()
         };
+
+        let object_groups: Vec<dataset_object_group::ObjectGroupRevision> =
+            match self.mongo_client.find_by_key(query).await {
+                Ok(value) => value,
+                Err(e) => {
+                    log::error!("{:?}", e);
+                    return Err(tonic::Status::internal(format!("{:?}", e)));
+                }
+            };
 
         for object_group in object_groups {
             for object in object_group.objects {
@@ -173,14 +177,18 @@ impl<T: Database> ObjectLoad for LoadServer<T> {
             .object_handler
             .init_multipart_upload(object.clone())
             .await?;
+
+        let query = doc! {
+            "objects.id": object.id.clone()
+        };
+
+        let update = doc! {
+            "objects.$": upload_id
+        };
+
         let updated_fields_count = match self
             .mongo_client
-            .update_field::<ObjectGroup, String>(
-                "objects.id".to_string(),
-                object.id.clone(),
-                "objects.$".to_string(),
-                upload_id,
-            )
+            .update_field::<ObjectGroup>(query, update)
             .await
         {
             Ok(value) => value,

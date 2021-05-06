@@ -2,11 +2,11 @@ use async_trait::async_trait;
 
 use futures::stream::StreamExt;
 use mongodb::{
-    bson::{to_bson, to_document, Bson, Document},
+    bson::{to_bson, to_document, Bson, Document, from_document},
     options::{ClientOptions, FindOptions, UpdateOptions},
     Client,
 };
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, __private::size_hint::from_bounds};
 use std::env;
 
 use std::{
@@ -22,7 +22,7 @@ use super::{
     database::Database,
     dataset_object_group::DatasetObject,
     dataset_object_group::ObjectGroup,
-    dataset_object_group::ObjectGroupVersion,
+    dataset_object_group::ObjectGroupRevision,
     project_model::ProjectEntry,
 };
 use crate::SETTINGS;
@@ -143,15 +143,20 @@ impl MongoHandler {
 impl Database for MongoHandler {
     async fn find_by_key<'de, T: DatabaseModel<'de>>(
         &self,
-        key: String,
-        value: String,
-    ) -> ResultWrapper<Vec<T>> {
+        query: Document,
+    ) -> Result<Vec<T>, tonic::Status> {
         let mut entries = Vec::new();
-
-        let filter = doc! {key: value};
         let filter_options = FindOptions::default();
 
-        let mut csr = self.collection::<T>().find(filter, filter_options).await?;
+        let mut csr = match self.collection::<T>().find(query, filter_options).await {
+            Ok(value) => value,
+            Err(e) => {
+                error!("{}", e);
+                return Err(tonic::Status::internal(format!(
+                    "error when searching found documents"
+                )));
+            }
+        };
 
         while let Some(result) = csr.next().await {
             match result {
@@ -159,43 +164,64 @@ impl Database for MongoHandler {
                     let datasetentry = T::new_from_document(document)?;
                     entries.push(datasetentry);
                 }
-                Err(e) => return Err(e.into()),
+                Err(e) => {
+                    error!("{}", e);
+                    return Err(tonic::Status::internal(format!(
+                        "error when parsing documents"
+                    )));
+                }
             }
         }
 
         Ok(entries)
     }
 
-    async fn store<'de, T: DatabaseModel<'de>>(&self, value: T) -> ResultWrapper<T> {
+    async fn store<'de, T: DatabaseModel<'de>>(&self, value: T) -> Result<T, tonic::Status> {
         let data_document = match value.to_document() {
             Ok(value) => value,
             Err(e) => {
                 error!("{:?}", e);
-                return Err(Box::new(SimpleError::new(&format!("{}", e))));
+                return Err(tonic::Status::internal(format!(
+                    "error when converting request to document"
+                )));
             }
         };
 
         let result = match self.collection::<T>().insert_one(data_document, None).await {
             Ok(value) => value,
             Err(e) => {
-                return Err(Box::new(SimpleError::new(&format!("{:?}", e))));
+                error!("{:?}", e);
+                return Err(tonic::Status::internal(format!(
+                    "error when inserting document"
+                )));
             }
         };
-        let insert_result = self.get_model_entry_internal_id(result.inserted_id).await?;
+        let insert_result = match self.get_model_entry_internal_id(result.inserted_id).await {
+            Ok(value) => value,
+            Err(e) => {
+                error!("{:?}", e);
+                return Err(tonic::Status::internal(format!(
+                    "could not extract internal id from inserted document"
+                )));
+            }
+        };
 
         let inserted_model = match insert_result {
             Some(value) => value,
             None => {
-                return Err::<T, Box<dyn std::error::Error + Send + Sync>>(Box::new(
-                    SimpleError::new("Could not find inserted object!"),
-                ));
+                return Err(tonic::Status::internal(format!(
+                    "could not extract document from internal id of inserted document"
+                )));
             }
         };
 
         return Ok(inserted_model);
     }
 
-    async fn add_user(&self, request: &services::AddUserToProjectRequest) -> ResultWrapper<()> {
+    async fn add_user(
+        &self,
+        request: &services::AddUserToProjectRequest,
+    ) -> Result<(), tonic::Status> {
         let collection = self.collection::<ProjectEntry>();
         let filter = doc! {
             "id": request.project_id.clone(),
@@ -206,18 +232,36 @@ impl Database for MongoHandler {
             rights: vec![Right::Read, Right::Write],
         };
 
+        let user_document = match to_document(&user) {
+            Ok(value) => value,
+            Err(e) => {
+                error!("{:?}", e);
+                return Err(tonic::Status::internal(format!(
+                    "could not convert user object to internal representation"
+                )));
+            }
+        };
+
         let insert = doc! {
-            "$addToSet": {"users": to_document(&user)?}
+            "$addToSet": {"users": user_document}
         };
 
         let options = UpdateOptions::default();
 
-        collection.update_one(filter, insert, options).await?;
+        match collection.update_one(filter, insert, options).await {
+            Ok(value) => value,
+            Err(e) => {
+                error!("{:?}", e);
+                return Err(tonic::Status::internal(format!(
+                    "could not update user object"
+                )));
+            }
+        };
 
         return Ok(());
     }
 
-    async fn find_object(&self, id: String) -> ResultWrapper<DatasetObject> {
+    async fn find_object(&self, id: String) -> Result<DatasetObject, tonic::Status> {
         let filter = doc! {
             "objects.id": id
         };
@@ -228,71 +272,65 @@ impl Database for MongoHandler {
 
         let options = FindOneOptions::builder().projection(projection).build();
 
-        let csr = self
+        let csr = match self
             .collection::<ObjectGroup>()
             .find_one(filter, options)
-            .await?;
+            .await
+        {
+            Ok(value) => value,
+            Err(e) => {
+                error!("{:?}", e);
+                return Err(tonic::Status::internal(format!(
+                    "could find requested object"
+                )));
+            }
+        };
 
         let object = match csr {
-            Some(value) => ObjectGroupVersion::new_from_document(value),
+            Some(value) => ObjectGroupRevision::new_from_document(value),
             None => {
-                return Err::<DatasetObject, Box<dyn std::error::Error + Send + Sync>>(Box::new(
-                    SimpleError::new("could not find object"),
-                ));
+                let e = Err(tonic::Status::internal(format!(
+                    "error when parsing documents"
+                )));
+                error!("{:?}", e);
+                return e;
             }
         }?;
 
         return Ok(object.objects[0].clone());
     }
 
-    async fn update_field<
-        'de,
-        T: DatabaseModel<'de>,
-        Y: Deserialize<'de> + Serialize + Send + Sync,
-    >(
+    async fn update_field<'de, T: DatabaseModel<'de>>(
         &self,
-        find_key: String,
-        find_value: String,
-        update_field: String,
-        update_value: Y,
-    ) -> ResultWrapper<i64> {
-        let filter = doc! {
-            find_key: find_value,
-        };
-
-        let update_value_bson = to_bson(&update_value)?;
-
-        let update = doc! {
-            "$set": {
-                update_field: update_value_bson,
-            }
-        };
-
-        match self
-            .collection::<T>()
-            .update_one(filter, update, None)
-            .await
-        {
+        query: Document,
+        update: Document,
+    ) -> Result<i64, tonic::Status> {
+        match self.collection::<T>().update_one(query, update, None).await {
             Ok(value) => return Ok(value.modified_count),
             Err(e) => {
                 log::error!("{:?}", e);
-                return Err(Box::new(SimpleError::new("could not update fields")));
+                return Err(tonic::Status::internal(format!(
+                    "error when trying to update document"
+                )));
             }
         };
     }
 
     async fn find_one_by_key<'de, T: DatabaseModel<'de>>(
         &self,
-        key: String,
-        value: String,
-    ) -> ResultWrapper<Option<T>> {
-        let filter = doc! {key: value};
+        query: Document,
+    ) -> Result<Option<T>, tonic::Status> {
         let filter_options = FindOneOptions::default();
 
-        let csr = self
-            .collection::<T>()
-            .find_one(filter, filter_options)
-            .await?;
+        let csr = match self.collection::<T>().find_one(query, filter_options).await {
+            Ok(value) => value,
+            Err(e) => {
+                log::error!("{:?}", e);
+                return Err(tonic::Status::internal(format!(
+                    "error when trying to find entry"
+                )));
+            }
+        };
 
         let entry = match csr {
             Some(value) => T::new_from_document(value)?,
@@ -300,6 +338,48 @@ impl Database for MongoHandler {
         };
 
         Ok(Some(entry))
+    }
+
+    async fn update_on_field<'de, T: DatabaseModel<'de>>(
+        &self,
+        query: Document,
+        update: Document,
+    ) -> Result<T, tonic::Status> {
+        let option_document = match self
+            .collection::<T>()
+            .find_one_and_update(query, update, None)
+            .await
+        {
+            Ok(value) => value,
+            Err(e) => {
+                log::error!("{:?}", e);
+                return Err(tonic::Status::internal(format!(
+                    "error when trying to update document"
+                )));
+            }
+        };
+
+        let document = match option_document {
+            Some(value) => value,
+            None => {
+                return Err(tonic::Status::internal(format!(
+                    "could not find value during update"
+                )));
+            }
+        };
+
+        let option_value: T = match from_document(document){
+            Ok(value) => value,
+            Err(e) => {
+                log::error!("{:?}", e);
+                return Err(tonic::Status::internal(format!(
+                    "error when trying to convert document to type after update"
+                )));
+            }
+        };
+
+        return Ok(option_value)
+
     }
 }
 

@@ -29,15 +29,15 @@ pub struct DatasetVersion {
 }
 
 impl DatabaseModel<'_> for DatasetVersion {
-    fn get_model_name() -> ResultWrapper<String> {
+    fn get_model_name() -> Result<String, tonic::Status> {
         Ok("DatasetVersion".to_string())
     }
 }
 
 impl DatasetVersion {
     pub fn new_from_proto_create(
-        request: services::ReleaseDatasetVersionRequest,
-    ) -> ResultWrapper<Self> {
+        request: &services::ReleaseDatasetVersionRequest,
+    ) -> Result<Self, tonic::Status> {
         let uuid = uuid::Uuid::new_v4();
         let timestamp = Utc::now();
 
@@ -49,15 +49,15 @@ impl DatasetVersion {
             labels: to_labels(&request.labels),
             metadata: to_metadata(&request.metadata),
             object_count: request.object_group_ids.len() as i64,
-            object_group_ids: request.object_group_ids,
+            object_group_ids: request.object_group_ids.clone(),
             status: super::common_models::Status::Available,
-            version: to_version(request.version.unwrap()),
+            version: to_version(request.version.clone().unwrap()),
         };
 
         return Ok(dataset_version);
     }
 
-    pub fn to_proto(&self) -> ResultWrapper<models::DatasetVersion> {
+    pub fn to_proto(&self) -> Result<models::DatasetVersion, tonic::Status> {
         let proto_version = models::DatasetVersion {
             id: self.id.clone(),
             dataset_id: self.dataset_id.clone(),

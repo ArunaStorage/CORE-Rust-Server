@@ -1,10 +1,12 @@
 use std::{error::Error, fmt, sync::Arc};
 
+use mongodb::bson::doc;
+
 use crate::database::{
     common_models::DatabaseModel,
     database::Database,
     dataset_model::DatasetEntry,
-    dataset_object_group::{ObjectGroup, ObjectGroupVersion},
+    dataset_object_group::{ObjectGroup, ObjectGroupRevision},
     dataset_version::DatasetVersion,
     project_model::ProjectEntry,
 };
@@ -37,55 +39,70 @@ impl<T: Database> ProjectAuthzHandler<T> {
         })
     }
 
-    async fn project_id_of_dataset(&self, id: String) -> ResultWrapper<String> {
-        let dataset_option: Option<DatasetEntry> = self
-            .database_handler
-            .find_one_by_key("id".to_string(), id.clone())
-            .await?;
+    async fn project_id_of_dataset(&self, id: String) -> Result<String, tonic::Status> {
+        let query = doc! {
+            "id": &id
+        };
+
+        let dataset_option: Option<DatasetEntry> =
+            self.database_handler.find_one_by_key(query).await?;
 
         let dataset = option_to_error(dataset_option, &id)?;
 
         return Ok(dataset.project_id);
     }
 
-    async fn project_id_of_object_group(&self, id: String) -> ResultWrapper<String> {
-        let dataset_groups_option: Option<ObjectGroup> = self
-            .database_handler
-            .find_one_by_key("id".to_string(), id.clone())
-            .await?;
+    async fn project_id_of_object_group(&self, id: String) -> Result<String, tonic::Status> {
+        let query = doc! {
+            "id": &id,
+        };
+
+        let dataset_groups_option: Option<ObjectGroup> =
+            self.database_handler.find_one_by_key(query).await?;
 
         let dataset_group = option_to_error(dataset_groups_option, &id)?;
 
         return self.project_id_of_dataset(dataset_group.id.clone()).await;
     }
 
-    async fn project_id_of_object(&self, id: String) -> ResultWrapper<String> {
-        let dataset_group_option: Option<ObjectGroup> = self
-            .database_handler
-            .find_one_by_key("objects.id".to_string(), id.clone())
-            .await?;
+    async fn project_id_of_object(&self, id: String) -> Result<String, tonic::Status> {
+        let query = doc! {
+            "id": &id,
+        };
+
+        let dataset_group_option: Option<ObjectGroupRevision> =
+            self.database_handler.find_one_by_key(query).await?;
 
         let dataset_group = option_to_error(dataset_group_option, &id)?;
 
         return self.project_id_of_dataset(dataset_group.id.clone()).await;
     }
 
-    async fn project_id_of_dataset_version(&self, id: String) -> ResultWrapper<String> {
-        let dataset_version_option: Option<DatasetVersion> = self
-            .database_handler
-            .find_one_by_key("objects.id".to_string(), id.clone())
-            .await?;
+    async fn project_id_of_dataset_version(&self, id: String) -> Result<String, tonic::Status> {
+        let query = doc! {
+            "id": &id,
+        };
+
+        let dataset_version_option: Option<DatasetVersion> =
+            self.database_handler.find_one_by_key(query).await?;
 
         let dataset_version = option_to_error(dataset_version_option, &id)?;
 
-        return self.project_id_of_dataset(dataset_version.id.clone()).await;
+        return self
+            .project_id_of_dataset(dataset_version.dataset_id.clone())
+            .await;
     }
 
-    async fn project_id_of_object_group_version(&self, id: String) -> ResultWrapper<String> {
-        let dataset_groups_version_option: Option<ObjectGroupVersion> = self
-            .database_handler
-            .find_one_by_key("id".to_string(), id.clone())
-            .await?;
+    async fn project_id_of_object_group_revision(
+        &self,
+        id: String,
+    ) -> Result<String, tonic::Status> {
+        let query = doc! {
+            "id": &id,
+        };
+
+        let dataset_groups_version_option: Option<ObjectGroupRevision> =
+            self.database_handler.find_one_by_key(query).await?;
 
         let object_group_version = option_to_error(dataset_groups_version_option, &id)?;
 
@@ -119,8 +136,8 @@ impl<T: Database> AuthHandler for ProjectAuthzHandler<T> {
             crate::database::common_models::Resource::Object => {
                 self.project_id_of_object(id.clone()).await
             }
-            crate::database::common_models::Resource::ObjectGroupVersion => {
-                self.project_id_of_object_group_version(id.clone()).await
+            crate::database::common_models::Resource::ObjectGroupRevision => {
+                self.project_id_of_object_group_revision(id.clone()).await
             }
         };
 
@@ -128,24 +145,25 @@ impl<T: Database> AuthHandler for ProjectAuthzHandler<T> {
             Ok(id) => id,
             Err(e) => {
                 log::error!("{:?}", e);
-                return Err(tonic::Status::internal(
+                return Err(tonic::Status::unauthenticated(
                     "could not authorize requested action",
                 ));
             }
         };
 
-        let project_option: Option<ProjectEntry> = match self
-            .database_handler
-            .find_one_by_key("id".to_string(), project_id.clone())
-            .await
-        {
-            Ok(value) => value,
-            Err(_) => {
-                return Err(tonic::Status::internal(
-                    "could not authorize requested action",
-                ));
-            }
+        let query = doc! {
+            "id": &id,
         };
+
+        let project_option: Option<ProjectEntry> =
+            match self.database_handler.find_one_by_key(query).await {
+                Ok(value) => value,
+                Err(_) => {
+                    return Err(tonic::Status::internal(
+                        "could not authorize requested action",
+                    ));
+                }
+            };
         let project = option_to_error(project_option, &project_id)?;
 
         let user_id = self.user_id(metadata).await?;

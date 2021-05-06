@@ -21,7 +21,7 @@ pub struct ProjectEntry {
 }
 
 impl DatabaseModel<'_> for ProjectEntry {
-    fn get_model_name() -> ResultWrapper<String> {
+    fn get_model_name() -> Result<String, tonic::Status> {
         Ok("project".to_string())
     }
 }

@@ -58,12 +58,12 @@ pub async fn start_server() -> ResultWrapper<()> {
     };
 
     let dataset_endpoints = DatasetsServer {
-        mongo_client: mongo_handler.clone(),
+        database_client: mongo_handler.clone(),
         auth_handler: project_authz_handler.clone(),
     };
 
     let objects_endpoints = ObjectServer {
-        mongo_client: mongo_handler.clone(),
+        database_client: mongo_handler.clone(),
         object_handler: object_storage_handler.clone(),
         auth_handler: project_authz_handler.clone(),
     };
