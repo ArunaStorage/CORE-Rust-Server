@@ -42,7 +42,7 @@ spec:
               secretKeyRef:
                 key: secretkey
                 name: s3
-          image: quay.io/scienceobjectsdb/core-rust-server:latest
+          image: harbor.computational.bio.uni-giessen.de/scienceobjectsdb/rust-server:latest
           name: objectshandler
           command: [/app/core_server]
           args: ["-c", "/config/config.yaml"]
