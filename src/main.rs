@@ -8,6 +8,7 @@ extern crate config;
 extern crate futures;
 extern crate prost;
 extern crate prost_types;
+extern crate rand;
 extern crate rusoto_core;
 extern crate rusoto_s3;
 extern crate tokio;

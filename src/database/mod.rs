@@ -1,3 +1,4 @@
+pub mod apitoken;
 pub mod common_models;
 pub mod database;
 pub mod dataset_model;

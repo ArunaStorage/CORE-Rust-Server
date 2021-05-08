@@ -1,6 +1,5 @@
 use std::time::SystemTime;
 
-use async_trait::async_trait;
 use mongodb::bson::{doc, from_document, to_document, DateTime, Document};
 use serde::{Deserialize, Serialize};
 
@@ -8,9 +7,6 @@ use log::error;
 
 use scienceobjectsdb_rust_api::sciobjectsdbapi::models;
 
-use super::{dataset_model::DatasetEntry, dataset_object_group::ObjectGroup};
-
-type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 type ResultWrapperSync<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq, Eq)]
@@ -30,7 +26,7 @@ pub enum Resource {
     Object,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Right {
     Read,
     Write,
@@ -181,25 +177,6 @@ pub trait DatabaseModel<'de>: serde::Serialize + serde::de::DeserializeOwned + S
     }
 
     fn get_model_name() -> Result<String, tonic::Status>;
-}
-
-#[async_trait]
-pub trait DatabaseHandler<'de, T: DatabaseModel<'de>> {
-    async fn store_model_entry(&self, value: T) -> ResultWrapper<T>;
-    async fn get_model_entry(&self, id: String) -> ResultWrapper<Option<T>>;
-    async fn find(&self, id: String, key: String) -> ResultWrapper<Vec<T>>;
-    async fn find_one(&self, id: String, key: String) -> ResultWrapper<Option<T>>;
-}
-
-#[async_trait]
-pub trait DatasetHandlerTrait {
-    async fn get_project_datasets(&self, project_id: String) -> ResultWrapper<Vec<DatasetEntry>>;
-}
-
-#[async_trait]
-pub trait ObjectGroupHandlerTrait {
-    async fn get_dataset_object_group(&self, dataset_id: String)
-        -> ResultWrapper<Vec<ObjectGroup>>;
 }
 
 pub fn to_metadata(proto_metadata: &Vec<models::Metadata>) -> Vec<Metadata> {

@@ -15,8 +15,6 @@ use super::{
 
 use super::common_models;
 
-type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
-
 /// Here are all models that are used to store object related components
 /// A ObjectGroupVersions is used to keep track of the history of a set of DatasetObjectGroups
 

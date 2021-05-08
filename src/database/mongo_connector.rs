@@ -2,11 +2,10 @@ use async_trait::async_trait;
 
 use futures::stream::StreamExt;
 use mongodb::{
-    bson::{to_bson, to_document, Bson, Document, from_document},
+    bson::{from_document, to_document, Bson, Document},
     options::{ClientOptions, FindOptions, UpdateOptions},
     Client,
 };
-use serde::{Deserialize, Serialize, __private::size_hint::from_bounds};
 use std::env;
 
 use std::{
@@ -368,7 +367,7 @@ impl Database for MongoHandler {
             }
         };
 
-        let option_value: T = match from_document(document){
+        let option_value: T = match from_document(document) {
             Ok(value) => value,
             Err(e) => {
                 log::error!("{:?}", e);
@@ -378,8 +377,7 @@ impl Database for MongoHandler {
             }
         };
 
-        return Ok(option_value)
-
+        return Ok(option_value);
     }
 }
 

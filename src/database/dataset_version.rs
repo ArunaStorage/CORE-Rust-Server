@@ -12,8 +12,6 @@ use super::common_models::{
     to_proto_version, to_version, DatabaseModel, Label, Metadata, Status, Version,
 };
 
-type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
-
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct DatasetVersion {
     pub id: String,

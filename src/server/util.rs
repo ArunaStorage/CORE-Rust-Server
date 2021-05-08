@@ -28,7 +28,9 @@ pub fn tonic_error_if_value_not_found<'a, 'de, T: DatabaseModel<'de>>(
         Some(value) => value,
         None => {
             return Err(tonic::Status::invalid_argument(format!(
-                "could not find {} with id {}", T::get_model_name()?, id
+                "could not find {} with id {}",
+                T::get_model_name()?,
+                id
             )))
         }
     };

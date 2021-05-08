@@ -9,8 +9,6 @@ use super::common_models::{
     Label, Metadata, Status,
 };
 
-type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
-
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct DatasetEntry {
     pub id: String,

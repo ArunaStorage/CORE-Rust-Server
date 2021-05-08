@@ -1,8 +1,7 @@
 use std::sync::Arc;
 
-use mongodb::bson::doc;
 use crate::server::util;
-
+use mongodb::bson::doc;
 
 use scienceobjectsdb_rust_api::sciobjectsdbapi::models::{self};
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services::project_api_server::ProjectApi;
@@ -16,6 +15,7 @@ use crate::{
         database::Database,
         dataset_model::DatasetEntry,
         project_model::ProjectEntry,
+        apitoken::APIToken,
     },
 };
 
@@ -80,12 +80,10 @@ impl<T: Database> ProjectApi for ProjectServer<T> {
             "id": add_user.project_id.as_str()
         };
 
-        let project_option: Option<ProjectEntry> = self
-            .mongo_client
-            .find_one_by_key(query)
-            .await?;
+        let project_option: Option<ProjectEntry> = self.mongo_client.find_one_by_key(query).await?;
 
-        let project = util::tonic_error_if_value_not_found(&project_option, add_user.project_id.as_str())?;
+        let project =
+            util::tonic_error_if_value_not_found(&project_option, add_user.project_id.as_str())?;
 
         return Ok(tonic::Response::new(project.to_proto_project()));
     }
@@ -108,10 +106,7 @@ impl<T: Database> ProjectApi for ProjectServer<T> {
             "project_id": get_request.id.as_str()
         };
 
-        let datasets: Vec<DatasetEntry> = self
-            .mongo_client
-            .find_by_key(query)
-            .await?;
+        let datasets: Vec<DatasetEntry> = self.mongo_client.find_by_key(query).await?;
 
         let mut proto_datasets = Vec::new();
         for entry in datasets {
@@ -138,10 +133,7 @@ impl<T: Database> ProjectApi for ProjectServer<T> {
             "users.user_id": id.as_str()
         };
 
-        let projects: Vec<ProjectEntry> = self
-            .mongo_client
-            .find_by_key(query)
-            .await?;
+        let projects: Vec<ProjectEntry> = self.mongo_client.find_by_key(query).await?;
 
         let mut proto_entries: Vec<Project> = Vec::new();
 
@@ -164,9 +156,62 @@ impl<T: Database> ProjectApi for ProjectServer<T> {
     }
 
     async fn get_project(
-            &self,
-            request: tonic::Request<models::Id>,
-        ) -> Result<Response<Project>, tonic::Status> {
+        &self,
+        request: tonic::Request<models::Id>,
+    ) -> Result<Response<Project>, tonic::Status> {
+        todo!()
+    }
+
+    async fn create_api_token(
+        &self,
+        request: tonic::Request<models::Id>,
+    ) -> Result<Response<models::ApiToken>, tonic::Status> {
+        let get_request = request.get_ref();
+        self.auth_handler
+            .authorize(
+                request.metadata(),
+                Resource::Project,
+                Right::Write,
+                get_request.id.clone(),
+            )
+            .await?;
+
+        let user_id = self.auth_handler.user_id(request.metadata()).await?;
+        let rights = vec![Right::Write, Right::Read];
+        let api_token = APIToken::new(user_id, rights, get_request.id.clone())?;
+
+        let inserted_token = self.mongo_client.store(api_token).await?;
+
+        return Ok(Response::new(inserted_token.to_proto()));
+    }
+
+    async fn get_api_token(
+        &self,
+        request: tonic::Request<models::Empty>,
+    ) -> Result<Response<services::ApiTokenList>, tonic::Status> {
+        let user_id = self.auth_handler.user_id(request.metadata()).await?;
+
+        let query = doc! {
+            "user_id": user_id
+        };
+
+        let token_list = self.mongo_client.find_by_key::<APIToken>(query).await?;
+        let mut proto_token = Vec::new();
+        for token in token_list {
+            proto_token.push(token.to_proto())
+        };
+
+        let reponse_token_list = services::ApiTokenList{
+            token: proto_token
+        };
+
+        return Ok(Response::new(reponse_token_list));
+    }
+
+    async fn delete_api_token(
+        &self,
+        request: tonic::Request<models::Id>,
+    ) -> Result<Response<models::Empty>, tonic::Status> {
         todo!()
     }
 }
