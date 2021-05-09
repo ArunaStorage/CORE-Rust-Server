@@ -140,13 +140,13 @@ mod server_test {
 
     async fn project_test(endpoints: &TestEndpointStruct) -> String {
         let create_project_request = Request::new(services::CreateProjectRequest {
-            name: "testproject".to_string(),
+            name: "testproject1".to_string(),
             description: "Some description".to_string(),
             ..Default::default()
         });
 
         let create_project_request_2 = Request::new(services::CreateProjectRequest {
-            name: "testproject".to_string(),
+            name: "testproject2".to_string(),
             description: "Some description".to_string(),
             ..Default::default()
         });
@@ -295,6 +295,96 @@ mod server_test {
         }
 
         return object_group.object_group.unwrap().id;
+    }
+
+
+    async fn test_revisions(endpoints: &TestEndpointStruct, object_group_id: String) -> Result<(), tonic::Status> {
+        let create_object_request = services::CreateObjectRequest {
+            filename: "testobject.txt".to_string(),
+            filetype: "txt".to_string(),
+            content_len: 8,
+            ..Default::default()
+        };
+
+
+        let create_revision = services::CreateObjectGroupRevisionRequest{
+            objects: vec![create_object_request],
+            ..Default::default()
+        };
+
+        let add_revision_request = services::AddRevisionToObjectGroupRequest{
+            object_group_id: object_group_id.clone(),
+            group_version: Some(create_revision),
+        };
+
+        let added_revision = endpoints.object_handler.add_revision_to_object_group(Request::new(add_revision_request)).await?;
+        let added_revision_ref = added_revision.get_ref();
+
+        let object_id = added_revision_ref.object_group_revision.clone().unwrap().objects[0].id.clone();
+
+        load_test(object_id, endpoints, TEST_DATA_REV2).await;
+
+        return Ok(());
+    }
+
+    async fn load_test(object_id: String, endpoints: &TestEndpointStruct, testdata: &'static str) {
+        let upload_request = Request::new(models::Id {
+            id: object_id.clone(),
+        });
+
+        let upload_link = endpoints
+            .load_handler
+            .create_upload_link(upload_request)
+            .await
+            .unwrap()
+            .into_inner();
+
+        let client = reqwest::Client::new();
+        let resp = client
+            .put(upload_link.upload_link)
+            .body(TEST_DATA_REV1.clone())
+            .send()
+            .await
+            .unwrap();
+
+        if resp.status() != 200 {
+            if resp.status() != 200 {
+                let status = resp.status();
+                let msg = resp.text().await.unwrap();
+                panic!(
+                    "wrong status code when uploading to S3: {} - {}",
+                    status, msg
+                )
+            }
+        }
+
+        let download_request = Request::new(models::Id {
+            id: object_id.clone(),
+        });
+
+        let download_link = endpoints
+            .load_handler
+            .create_download_link(download_request)
+            .await
+            .unwrap()
+            .into_inner();
+
+        let resp = client.get(download_link.upload_link).send().await.unwrap();
+        if resp.status() != 200 {
+            let status = resp.status();
+            let msg = resp.text().await.unwrap();
+            panic!(
+                "wrong status code when downloading from S3: {} - {}",
+                status, msg
+            )
+        }
+
+        let data = resp.bytes().await.unwrap();
+        let data_string = String::from_utf8(data.to_vec()).unwrap();
+
+        if data_string != testdata {
+            panic!("downloaded data does not match uploaded rata")
+        }
     }
 
     #[tokio::test]
