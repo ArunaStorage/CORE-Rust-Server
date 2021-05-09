@@ -150,16 +150,18 @@ impl<T: Database> ProjectApi for ProjectServer<T> {
 
     async fn delete_project(
         &self,
-        _request: tonic::Request<models::Id>,
+        request: tonic::Request<models::Id>,
     ) -> Result<tonic::Response<models::Empty>, tonic::Status> {
-        todo!()
+        let _inner_request = request.get_ref();
+        return Err(tonic::Status::unimplemented("not implemented"));
     }
 
     async fn get_project(
         &self,
         request: tonic::Request<models::Id>,
     ) -> Result<Response<Project>, tonic::Status> {
-        todo!()
+        let _inner_request = request.get_ref();
+        return Err(tonic::Status::unimplemented("not implemented"));
     }
 
     async fn create_api_token(
@@ -212,6 +214,7 @@ impl<T: Database> ProjectApi for ProjectServer<T> {
         &self,
         request: tonic::Request<models::Id>,
     ) -> Result<Response<models::Empty>, tonic::Status> {
-        todo!()
+        let _inner_request = request.get_ref();
+        return Err(tonic::Status::unimplemented("not implemented"));
     }
 }

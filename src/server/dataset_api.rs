@@ -213,14 +213,16 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
         &self,
         request: tonic::Request<models::UpdateFieldsRequest>,
     ) -> Result<Response<models::Dataset>, tonic::Status> {
-        todo!()
+        let _inner_request = request.get_ref();
+        return Err(tonic::Status::unimplemented("not implemented"));
     }
 
     async fn delete_dataset(
         &self,
         request: tonic::Request<models::Id>,
     ) -> Result<Response<models::Empty>, tonic::Status> {
-        todo!()
+        let _inner_request = request.get_ref();
+        return Err(tonic::Status::unimplemented("not implemented"));
     }
 
     async fn release_dataset_version(
@@ -244,9 +246,9 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
         for revision_id in inner_request.revision_ids.clone() {
             let authz_request = self.auth_handler.authorize(
                 request.metadata(),
-                Resource::Dataset,
+                Resource::ObjectGroupRevision,
                 Right::Write,
-                inner_request.dataset_id.clone(),
+                revision_id,
             );
 
             poll_authz_queue.push(authz_request);
@@ -295,18 +297,18 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
         request: tonic::Request<models::Id>,
     ) -> Result<Response<services::ObjectGroupRevisions>, tonic::Status> {
         let inner_request = request.get_ref();
-        let authz_request = self.auth_handler.authorize(
+        self.auth_handler.authorize(
             request.metadata(),
             Resource::DatasetVersion,
             Right::Write,
             inner_request.id.clone(),
-        );
+        ).await?;
 
         let query = doc! {
             "id": inner_request.id.clone()
         };
 
-        let dataset_version = match self
+        let _dataset_version = match self
             .database_client
             .find_one_by_key::<DatasetVersion>(query)
             .await?
@@ -348,12 +350,12 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
         request: tonic::Request<models::Id>,
     ) -> Result<Response<models::DatasetVersion>, tonic::Status> {
         let inner_request = request.get_ref();
-        let authz_request = self.auth_handler.authorize(
+        self.auth_handler.authorize(
             request.metadata(),
             Resource::DatasetVersion,
             Right::Write,
             inner_request.id.clone(),
-        );
+        ).await?;
 
         let query = doc! {
             "id": inner_request.id.clone()

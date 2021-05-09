@@ -10,7 +10,7 @@ use mongodb::bson::doc;
 use crate::{
     auth::authenticator::AuthHandler,
     database::{
-        common_models::{Resource, Right, Status},
+        common_models::{Resource, Right},
         database::Database,
         dataset_object_group::ObjectGroup,
     },
@@ -273,7 +273,8 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
             object_group_revision,
             inner_request.revision.as_str(),
         )?;
-        let group_query = doc! {
+
+        let _group_query = doc! {
             "id": revision.datasete_id.clone()
         };
 
@@ -321,6 +322,7 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
         &self,
         request: tonic::Request<models::Id>,
     ) -> Result<Response<Empty>, tonic::Status> {
-        todo!()
+        let _inner_request = request.get_ref();
+        return Err(tonic::Status::unimplemented("not implemented"));
     }
 }
