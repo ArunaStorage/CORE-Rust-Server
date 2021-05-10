@@ -44,6 +44,7 @@ spec:
                 name: s3
           image: harbor.computational.bio.uni-giessen.de/scienceobjectsdb/rust-server:latest
           name: objectshandler
+          imagePullPolicy: Always
           command: [/app/core_server]
           args: ["-c", "/config/config.yaml"]
           volumeMounts:
