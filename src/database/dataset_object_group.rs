@@ -1,7 +1,7 @@
 use std::{sync::Arc, time::SystemTime};
 
-use chrono::{Utc};
 use chrono::DateTime;
+use chrono::Utc;
 use prost_types::Timestamp;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::{models, services};
 use serde::{Deserialize, Serialize};
@@ -221,9 +221,8 @@ impl DatasetObject {
     }
 
     pub fn to_proto_object(&self) -> models::Object {
-        let systemTime: SystemTime = self.created.into();
-        let timestamp = Timestamp::from(systemTime);
-
+        let system_time: SystemTime = self.created.into();
+        let timestamp = Timestamp::from(system_time);
 
         let proto_object = models::Object {
             id: self.id.clone(),

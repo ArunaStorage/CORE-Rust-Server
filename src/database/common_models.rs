@@ -1,7 +1,5 @@
 use mongodb::bson::{doc, from_document, to_document, Document};
 use serde::{Deserialize, Serialize};
-use bson::DateTime;
-use chrono;
 
 use log::error;
 

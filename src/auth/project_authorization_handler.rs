@@ -4,14 +4,14 @@ use mongodb::bson::doc;
 use std::collections::HashSet;
 
 use crate::database::{
+    apitoken::APIToken,
     common_models::DatabaseModel,
+    common_models::Right,
     database::Database,
     dataset_model::DatasetEntry,
     dataset_object_group::{ObjectGroup, ObjectGroupRevision},
     dataset_version::DatasetVersion,
     project_model::ProjectEntry,
-    apitoken::APIToken,
-    common_models::Right,
 };
 
 use super::{authenticator::AuthHandler, oauth2_handler};
@@ -44,18 +44,33 @@ impl<T: Database> ProjectAuthzHandler<T> {
         })
     }
 
-    async fn authorize_from_api_token(&self, token: &str, project_id: &str, requested_rights: Vec<Right>) -> Result<(), tonic::Status> {
+    async fn authorize_from_api_token(
+        &self,
+        token: &str,
+        project_id: &str,
+        requested_rights: Vec<Right>,
+    ) -> Result<(), tonic::Status> {
         let query = doc! {
             "token": token
         };
 
-        let db_token = match self.database_handler.find_one_by_key::<APIToken>(query).await?{
-            Some(value ) => value,
-            None => return Err(tonic::Status::unauthenticated("could not authenticate user from api token"))
+        let db_token = match self
+            .database_handler
+            .find_one_by_key::<APIToken>(query)
+            .await?
+        {
+            Some(value) => value,
+            None => {
+                return Err(tonic::Status::unauthenticated(
+                    "could not authenticate user from api token",
+                ))
+            }
         };
-        
+
         if db_token.project_id != project_id {
-            return Err(tonic::Status::permission_denied("could not authorize for requested project"))
+            return Err(tonic::Status::permission_denied(
+                "could not authorize for requested project",
+            ));
         }
 
         let mut rights_hash_set = HashSet::new();
@@ -65,11 +80,13 @@ impl<T: Database> ProjectAuthzHandler<T> {
 
         for requested_right in requested_rights {
             if !rights_hash_set.contains(&requested_right) {
-                return Err(tonic::Status::permission_denied("could not authorize for request project"))
+                return Err(tonic::Status::permission_denied(
+                    "could not authorize for request project",
+                ));
             };
         }
-        
-        return Ok(())
+
+        return Ok(());
     }
 
     async fn project_id_of_dataset(&self, id: String) -> Result<String, tonic::Status> {
@@ -188,7 +205,10 @@ impl<T: Database> AuthHandler for ProjectAuthzHandler<T> {
 
         match metadata.get(API_TOKEN_ENTRY) {
             Some(meta_token) => match meta_token.to_str() {
-                Ok(token) => self.authorize_from_api_token(token, project_id.as_str(), requested_rights).await?,
+                Ok(token) => {
+                    self.authorize_from_api_token(token, project_id.as_str(), requested_rights)
+                        .await?
+                }
                 Err(e) => {
                     log::error!("{:?}", e);
                     return Err(tonic::Status::unauthenticated(

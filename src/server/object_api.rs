@@ -327,16 +327,16 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
     }
 
     async fn delete_object_group(
-            &self,
-            request: tonic::Request<models::Id>,
-        ) -> Result<Response<Empty>, tonic::Status> {
+        &self,
+        _request: tonic::Request<models::Id>,
+    ) -> Result<Response<Empty>, tonic::Status> {
         todo!()
     }
 
     async fn delete_object_group_revision(
-            &self,
-            request: tonic::Request<models::Id>,
-        ) -> Result<Response<Empty>, tonic::Status> {
+        &self,
+        _request: tonic::Request<models::Id>,
+    ) -> Result<Response<Empty>, tonic::Status> {
         todo!()
     }
 }

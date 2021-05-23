@@ -297,8 +297,10 @@ mod server_test {
         return object_group.object_group.unwrap().id;
     }
 
-
-    async fn test_revisions(endpoints: &TestEndpointStruct, object_group_id: String) -> Result<(), tonic::Status> {
+    async fn test_revisions(
+        endpoints: &TestEndpointStruct,
+        object_group_id: String,
+    ) -> Result<(), tonic::Status> {
         let create_object_request = services::CreateObjectRequest {
             filename: "testobject.txt".to_string(),
             filetype: "txt".to_string(),
@@ -306,21 +308,29 @@ mod server_test {
             ..Default::default()
         };
 
-
-        let create_revision = services::CreateObjectGroupRevisionRequest{
+        let create_revision = services::CreateObjectGroupRevisionRequest {
             objects: vec![create_object_request],
             ..Default::default()
         };
 
-        let add_revision_request = services::AddRevisionToObjectGroupRequest{
+        let add_revision_request = services::AddRevisionToObjectGroupRequest {
             object_group_id: object_group_id.clone(),
             group_version: Some(create_revision),
         };
 
-        let added_revision = endpoints.object_handler.add_revision_to_object_group(Request::new(add_revision_request)).await?;
+        let added_revision = endpoints
+            .object_handler
+            .add_revision_to_object_group(Request::new(add_revision_request))
+            .await?;
         let added_revision_ref = added_revision.get_ref();
 
-        let object_id = added_revision_ref.object_group_revision.clone().unwrap().objects[0].id.clone();
+        let object_id = added_revision_ref
+            .object_group_revision
+            .clone()
+            .unwrap()
+            .objects[0]
+            .id
+            .clone();
 
         load_test(object_id, endpoints, TEST_DATA_REV2).await;
 

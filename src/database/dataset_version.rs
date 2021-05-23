@@ -1,7 +1,7 @@
 use std::time::SystemTime;
 
-use chrono::Utc;
 use chrono::DateTime;
+use chrono::Utc;
 use prost_types::Timestamp;
 use serde::{Deserialize, Serialize};
 
@@ -11,8 +11,8 @@ use scienceobjectsdb_rust_api::sciobjectsdbapi::{
 };
 
 use super::common_models::{
-    to_labels, to_metadata, to_proto_labels, to_proto_metadata, to_proto_status,
-    to_proto_version, to_version, DatabaseModel, Label, Metadata, Status, Version,
+    to_labels, to_metadata, to_proto_labels, to_proto_metadata, to_proto_status, to_proto_version,
+    to_version, DatabaseModel, Label, Metadata, Status, Version,
 };
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -59,8 +59,8 @@ impl DatasetVersion {
     }
 
     pub fn to_proto(&self) -> Result<models::DatasetVersion, tonic::Status> {
-        let systemTime: SystemTime = self.created.into();
-        let timestamp = Timestamp::from(systemTime);
+        let system_time: SystemTime = self.created.into();
+        let timestamp = Timestamp::from(system_time);
 
         let proto_version = models::DatasetVersion {
             id: self.id.clone(),

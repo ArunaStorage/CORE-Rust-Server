@@ -297,12 +297,14 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
         request: tonic::Request<models::Id>,
     ) -> Result<Response<services::ObjectGroupRevisions>, tonic::Status> {
         let inner_request = request.get_ref();
-        self.auth_handler.authorize(
-            request.metadata(),
-            Resource::DatasetVersion,
-            Right::Write,
-            inner_request.id.clone(),
-        ).await?;
+        self.auth_handler
+            .authorize(
+                request.metadata(),
+                Resource::DatasetVersion,
+                Right::Write,
+                inner_request.id.clone(),
+            )
+            .await?;
 
         let query = doc! {
             "id": inner_request.id.clone()
@@ -350,12 +352,14 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
         request: tonic::Request<models::Id>,
     ) -> Result<Response<models::DatasetVersion>, tonic::Status> {
         let inner_request = request.get_ref();
-        self.auth_handler.authorize(
-            request.metadata(),
-            Resource::DatasetVersion,
-            Right::Write,
-            inner_request.id.clone(),
-        ).await?;
+        self.auth_handler
+            .authorize(
+                request.metadata(),
+                Resource::DatasetVersion,
+                Right::Write,
+                inner_request.id.clone(),
+            )
+            .await?;
 
         let query = doc! {
             "id": inner_request.id.clone()
@@ -381,9 +385,9 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
     }
 
     async fn delete_dataset_version(
-            &self,
-            request: tonic::Request<models::Id>,
-        ) -> Result<Response<models::Empty>, tonic::Status> {
+        &self,
+        _request: tonic::Request<models::Id>,
+    ) -> Result<Response<models::Empty>, tonic::Status> {
         todo!()
     }
 }

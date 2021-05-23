@@ -11,11 +11,11 @@ use tonic::Response;
 use crate::{
     auth::authenticator::AuthHandler,
     database::{
+        apitoken::APIToken,
         common_models::{Resource, Right},
         database::Database,
         dataset_model::DatasetEntry,
         project_model::ProjectEntry,
-        apitoken::APIToken,
     },
 };
 
@@ -201,11 +201,9 @@ impl<T: Database> ProjectApi for ProjectServer<T> {
         let mut proto_token = Vec::new();
         for token in token_list {
             proto_token.push(token.to_proto())
-        };
+        }
 
-        let reponse_token_list = services::ApiTokenList{
-            token: proto_token
-        };
+        let reponse_token_list = services::ApiTokenList { token: proto_token };
 
         return Ok(Response::new(reponse_token_list));
     }
