@@ -31,7 +31,7 @@ pub trait Database: Send + Sync {
         &self,
         query: Document,
         update: Document,
-    ) -> Result<i64, tonic::Status>;
+    ) -> Result<u64, tonic::Status>;
     async fn update_on_field<'de, T: DatabaseModel<'de>>(
         &self,
         query: Document,

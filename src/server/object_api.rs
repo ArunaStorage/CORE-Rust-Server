@@ -325,4 +325,18 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
         let _inner_request = request.get_ref();
         return Err(tonic::Status::unimplemented("not implemented"));
     }
+
+    async fn delete_object_group(
+            &self,
+            request: tonic::Request<models::Id>,
+        ) -> Result<Response<Empty>, tonic::Status> {
+        todo!()
+    }
+
+    async fn delete_object_group_revision(
+            &self,
+            request: tonic::Request<models::Id>,
+        ) -> Result<Response<Empty>, tonic::Status> {
+        todo!()
+    }
 }

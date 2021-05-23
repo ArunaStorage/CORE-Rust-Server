@@ -379,4 +379,11 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
 
         return Ok(Response::new(dataset_version.to_proto()?));
     }
+
+    async fn delete_dataset_version(
+            &self,
+            request: tonic::Request<models::Id>,
+        ) -> Result<Response<models::Empty>, tonic::Status> {
+        todo!()
+    }
 }

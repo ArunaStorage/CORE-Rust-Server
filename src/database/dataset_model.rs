@@ -2,7 +2,7 @@ use scienceobjectsdb_rust_api::sciobjectsdbapi::{models, services};
 use serde::{Deserialize, Serialize};
 
 use chrono::prelude::*;
-use mongodb::bson::DateTime;
+use chrono::DateTime;
 
 use super::common_models::{
     to_labels, to_metadata, to_proto_labels, to_proto_metadata, to_proto_status, DatabaseModel,
@@ -15,7 +15,7 @@ pub struct DatasetEntry {
     pub name: String,
     pub description: String,
     pub is_public: bool,
-    pub created: DateTime,
+    pub created: DateTime<Utc>,
     pub status: Status,
     pub project_id: String,
     pub labels: Vec<Label>,

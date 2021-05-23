@@ -1,7 +1,7 @@
-use std::time::SystemTime;
-
-use mongodb::bson::{doc, from_document, to_document, DateTime, Document};
+use mongodb::bson::{doc, from_document, to_document, Document};
 use serde::{Deserialize, Serialize};
+use bson::DateTime;
+use chrono;
 
 use log::error;
 
@@ -326,9 +326,4 @@ pub fn to_proto_version(version: &Version) -> models::Version {
     };
 
     return version;
-}
-
-pub fn to_proto_datetime(datetime: &DateTime) -> prost_types::Timestamp {
-    let system_date_time = SystemTime::from(datetime.0);
-    return prost_types::Timestamp::from(system_date_time);
 }

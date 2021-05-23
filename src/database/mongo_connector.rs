@@ -303,7 +303,7 @@ impl Database for MongoHandler {
         &self,
         query: Document,
         update: Document,
-    ) -> Result<i64, tonic::Status> {
+    ) -> Result<u64, tonic::Status> {
         match self.collection::<T>().update_one(query, update, None).await {
             Ok(value) => return Ok(value.modified_count),
             Err(e) => {

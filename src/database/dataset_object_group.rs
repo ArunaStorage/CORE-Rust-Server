@@ -1,7 +1,8 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::SystemTime};
 
-use chrono::{Timelike, Utc};
-use mongodb::bson::DateTime;
+use chrono::{Utc};
+use chrono::DateTime;
+use prost_types::Timestamp;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::{models, services};
 use serde::{Deserialize, Serialize};
 
@@ -79,7 +80,7 @@ pub struct ObjectGroupRevision {
     pub id: String,
     pub datasete_id: String,
     pub object_group_id: String,
-    pub date_create: DateTime,
+    pub date_create: DateTime<Utc>,
     pub labels: Vec<Label>,
     pub metadata: Vec<Metadata>,
     pub objects_count: i64,
@@ -166,7 +167,7 @@ pub struct DatasetObject {
     pub origin: Origin,
     pub content_len: i64,
     pub location: Location,
-    pub created: DateTime,
+    pub created: DateTime<Utc>,
     pub metadata: Vec<Metadata>,
     pub upload_id: String,
 }
@@ -220,10 +221,9 @@ impl DatasetObject {
     }
 
     pub fn to_proto_object(&self) -> models::Object {
-        let timestamp = prost_types::Timestamp {
-            seconds: self.created.timestamp(),
-            nanos: self.created.nanosecond() as i32,
-        };
+        let systemTime: SystemTime = self.created.into();
+        let timestamp = Timestamp::from(systemTime);
+
 
         let proto_object = models::Object {
             id: self.id.clone(),

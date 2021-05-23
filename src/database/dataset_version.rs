@@ -1,5 +1,8 @@
+use std::time::SystemTime;
+
 use chrono::Utc;
-use mongodb::bson::DateTime;
+use chrono::DateTime;
+use prost_types::Timestamp;
 use serde::{Deserialize, Serialize};
 
 use scienceobjectsdb_rust_api::sciobjectsdbapi::{
@@ -8,7 +11,7 @@ use scienceobjectsdb_rust_api::sciobjectsdbapi::{
 };
 
 use super::common_models::{
-    to_labels, to_metadata, to_proto_datetime, to_proto_labels, to_proto_metadata, to_proto_status,
+    to_labels, to_metadata, to_proto_labels, to_proto_metadata, to_proto_status,
     to_proto_version, to_version, DatabaseModel, Label, Metadata, Status, Version,
 };
 
@@ -19,7 +22,7 @@ pub struct DatasetVersion {
     pub description: String,
     pub labels: Vec<Label>,
     pub metadata: Vec<Metadata>,
-    pub created: DateTime,
+    pub created: DateTime<Utc>,
     pub version: Version,
     pub object_group_ids: Vec<String>,
     pub object_count: i64,
@@ -56,6 +59,9 @@ impl DatasetVersion {
     }
 
     pub fn to_proto(&self) -> Result<models::DatasetVersion, tonic::Status> {
+        let systemTime: SystemTime = self.created.into();
+        let timestamp = Timestamp::from(systemTime);
+
         let proto_version = models::DatasetVersion {
             id: self.id.clone(),
             dataset_id: self.dataset_id.clone(),
@@ -66,7 +72,7 @@ impl DatasetVersion {
             object_group_ids: self.object_group_ids.clone(),
             version: Some(to_proto_version(&self.version)),
             status: to_proto_status(&self.status) as i32,
-            created: Some(to_proto_datetime(&self.created)),
+            created: Some(timestamp),
         };
 
         return Ok(proto_version);
