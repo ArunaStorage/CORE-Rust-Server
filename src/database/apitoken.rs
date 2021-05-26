@@ -46,6 +46,7 @@ impl APIToken {
             id: self.id.clone(),
             rights: to_proto_rights(&self.rights),
             token: self.token.clone(),
+            project_id: self.project_id.clone(),
         };
 
         return api_token;

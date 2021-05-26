@@ -2,6 +2,7 @@ use std::{error::Error, fmt, sync::Arc};
 
 use mongodb::bson::doc;
 use std::collections::HashSet;
+use tonic::metadata::MetadataMap;
 
 use crate::database::{
     apitoken::APIToken,
@@ -23,7 +24,8 @@ enum TokenType {
     OAuth2,
 }
 
-const API_TOKEN_ENTRY: &str = "API_TOKEN";
+const API_TOKEN_ENTRY_KEY: &str = "API_TOKEN";
+const USER_TOKEN_ENTRY_KEY: &str = "AccessToken";
 
 type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
@@ -44,12 +46,67 @@ impl<T: Database> ProjectAuthzHandler<T> {
         })
     }
 
+    async fn authorize_from_user_token(
+        &self,
+        id: String,
+        project_id: String,
+        metadata: &MetadataMap,
+        right: crate::database::common_models::Right,
+    ) -> Result<(), tonic::Status> {
+        let query = doc! {
+            "id": &id,
+        };
+
+        let project_option: Option<ProjectEntry> =
+            match self.database_handler.find_one_by_key(query).await {
+                Ok(value) => value,
+                Err(_) => {
+                    return Err(tonic::Status::internal(
+                        "could not authorize requested action",
+                    ));
+                }
+            };
+        let project = option_to_error(project_option, &project_id)?;
+
+        let user_id = self.user_id(metadata).await?;
+
+        for user in project.users {
+            if user.user_id == user_id {
+                for user_right in user.rights {
+                    if user_right == right {
+                        return Ok(());
+                    }
+                }
+            }
+        }
+
+        return Err(tonic::Status::permission_denied(
+            "could not authorize requested action",
+        ));
+    }
+
     async fn authorize_from_api_token(
         &self,
-        token: &str,
-        project_id: &str,
+        metadata: &MetadataMap,
+        project_id: String,
         requested_rights: Vec<Right>,
     ) -> Result<(), tonic::Status> {
+        let token = match metadata.get(API_TOKEN_ENTRY_KEY) {
+            Some(meta_token) => match meta_token.to_str() {
+                Ok(token) => token,
+                Err(e) => {
+                    log::error!("{:?}", e);
+                    return Err(tonic::Status::internal(format!("error decoding token")));
+                }
+            },
+            None => {
+                return Err(tonic::Status::unauthenticated(format!(
+                    "could not find token {}",
+                    API_TOKEN_ENTRY_KEY
+                )));
+            }
+        };
+
         let query = doc! {
             "token": token
         };
@@ -203,52 +260,17 @@ impl<T: Database> AuthHandler for ProjectAuthzHandler<T> {
 
         let requested_rights = vec![right.clone()];
 
-        match metadata.get(API_TOKEN_ENTRY) {
-            Some(meta_token) => match meta_token.to_str() {
-                Ok(token) => {
-                    self.authorize_from_api_token(token, project_id.as_str(), requested_rights)
-                        .await?
-                }
-                Err(e) => {
-                    log::error!("{:?}", e);
-                    return Err(tonic::Status::unauthenticated(
-                        "could not authorize requested action",
-                    ));
-                }
-            },
-            None => (),
-        };
-
-        let query = doc! {
-            "id": &id,
-        };
-
-        let project_option: Option<ProjectEntry> =
-            match self.database_handler.find_one_by_key(query).await {
-                Ok(value) => value,
-                Err(_) => {
-                    return Err(tonic::Status::internal(
-                        "could not authorize requested action",
-                    ));
-                }
-            };
-        let project = option_to_error(project_option, &project_id)?;
-
-        let user_id = self.user_id(metadata).await?;
-
-        for user in project.users {
-            if user.user_id == user_id {
-                for user_right in user.rights {
-                    if user_right == right {
-                        return Ok(());
-                    }
-                }
-            }
+        if metadata.contains_key(USER_TOKEN_ENTRY_KEY) {
+            return self
+                .authorize_from_user_token(id, project_id, metadata, right)
+                .await;
+        } else if metadata.contains_key(API_TOKEN_ENTRY_KEY) {
+            return self
+                .authorize_from_api_token(metadata, project_id, requested_rights)
+                .await;
         }
 
-        return Err(tonic::Status::permission_denied(
-            "could not authorize requested action",
-        ));
+        return Err(tonic::Status::unauthenticated(format!("could not find authentication token, please provide a token in metadata either with {} or {}", USER_TOKEN_ENTRY_KEY, API_TOKEN_ENTRY_KEY)));
     }
 
     async fn user_id(
