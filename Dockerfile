@@ -12,7 +12,7 @@ RUN cargo build --release
 
 FROM debian:bullseye-slim
 
-RUN apt-get -y update && apt-get -y upgrade && apt-get install -y libssl-dev
+RUN apt-get -y update && apt-get -y upgrade && apt-get install -y libssl-dev ca-certificates
 
 RUN useradd -ms /bin/bash appuser
 
