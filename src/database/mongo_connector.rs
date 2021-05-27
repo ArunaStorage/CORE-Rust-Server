@@ -1,12 +1,10 @@
 use async_trait::async_trait;
 
+use std::convert::TryFrom;
+
 use futures::stream::StreamExt;
-use mongodb::{
-    bson::{from_document, to_document, Bson, Document},
-    options::{ClientOptions, FindOptions, UpdateOptions},
-    Client,
-};
-use std::env;
+use mongodb::{Client, bson::{from_document, to_document, Bson, Document}, options::{ClientOptions, FindOptions, ServerAddress, UpdateOptions}};
+use std::{env, time::Duration};
 
 use std::{
     error::Error,
@@ -52,12 +50,28 @@ impl MongoHandler {
             .unwrap()
             .get_int("Database.Mongo.Port")
             .unwrap_or(27017);
+        let source = SETTINGS
+            .read()
+            .unwrap()
+            .get_str("Database.Mongo.Source")
+            .unwrap_or("admin".to_string());
 
         let password = env::var("MONGO_PASSWORD").unwrap_or("test123".to_string());
 
-        let mongo_connection_string =
-            format!("mongodb://{}:{}@{}:{}", username, password, host, port);
-        let client_options = ClientOptions::parse(&mongo_connection_string).await?;
+        let port_u16 = match u16::try_from(port) {
+            Ok(value) => value,
+            Err(e) => return Err(Box::new(e)),
+        };
+
+
+        let host = ServerAddress::Tcp{
+            host: host,
+            port: Some(port_u16),
+        };
+
+        let client_credentials = mongodb::options::Credential::builder().username(username).password(password).source(source).build();
+        let client_options = mongodb::options::ClientOptions::builder().credential(client_credentials).connect_timeout(Duration::from_millis(500)).hosts(vec![host]).build();
+
         let client = Client::with_options(client_options)?;
 
         Ok(MongoHandler {

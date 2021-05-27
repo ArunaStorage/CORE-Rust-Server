@@ -5,6 +5,7 @@ Database:
     Port: 27017
     Username: root
     Database: "test-database"
+    AuthDatabase: admin
 Server:
   Host: "127.0.0.1"
   Port: 50051
