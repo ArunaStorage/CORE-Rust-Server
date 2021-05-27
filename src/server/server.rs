@@ -35,7 +35,7 @@ pub async fn start_server() -> ResultWrapper<()> {
         .unwrap_or("localhost".to_string());
     let s3_bucket = SETTINGS.read().unwrap().get_str("Storage.Bucket").unwrap();
 
-    let mongo_handler = Arc::new(MongoHandler::new(s3_bucket.clone()).await?);
+    let mongo_handler = Arc::new(MongoHandler::new().await?);
 
     let object_storage_handler = Arc::new(S3Handler::new(
         s3_endpoint.to_string(),

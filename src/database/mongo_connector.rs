@@ -34,7 +34,7 @@ pub struct MongoHandler {
 }
 
 impl MongoHandler {
-    pub async fn new(database_name: String) -> ResultWrapper<Self> {
+    pub async fn new() -> ResultWrapper<Self> {
         let host = SETTINGS
             .read()
             .unwrap()
@@ -55,6 +55,11 @@ impl MongoHandler {
             .unwrap()
             .get_str("Database.Mongo.Source")
             .unwrap_or("admin".to_string());
+        let database_name = SETTINGS
+            .read()
+            .unwrap()
+            .get_str("Database.Mongo.Database")
+            .unwrap_or("objectsdb".to_string());
 
         let password = env::var("MONGO_PASSWORD").unwrap_or("test123".to_string());
 

@@ -29,11 +29,11 @@ spec:
         - env:
           - name: RUST_LOG
             value: debug
-          - name: MongoDBPasswd
+          - name: MONGO_PASSWORD
             valueFrom:
               secretKeyRef:
-                key: user-password 
-                name: mongodb
+                key: mongodb-password
+                name: core-mongo-mongodb 
           - name: AWS_ACCESS_KEY_ID
             valueFrom:
               secretKeyRef:
