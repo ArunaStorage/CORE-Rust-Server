@@ -90,13 +90,8 @@ mod server_test {
             .get_str("Storage.Endpoint")
             .unwrap_or("localhost".to_string());
         let s3_bucket = SETTINGS.read().unwrap().get_str("Storage.Bucket").unwrap();
-        let _database_name = SETTINGS
-            .read()
-            .unwrap()
-            .get_str("Database.Mongo.Database")
-            .unwrap_or("test-database".to_string());
 
-        let mongo_handler = Arc::new(MongoHandler::new(s3_bucket.clone()).await.unwrap());
+        let mongo_handler = Arc::new(MongoHandler::new().await.unwrap());
 
         let object_storage_handler = Arc::new(S3Handler::new(
             s3_endpoint.to_string(),
