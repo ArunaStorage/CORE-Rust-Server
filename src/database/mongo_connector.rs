@@ -3,7 +3,11 @@ use async_trait::async_trait;
 use std::convert::TryFrom;
 
 use futures::stream::StreamExt;
-use mongodb::{Client, bson::{from_document, to_document, Bson, Document}, options::{ClientOptions, FindOptions, ServerAddress, UpdateOptions}};
+use mongodb::{
+    bson::{from_document, to_document, Bson, Document},
+    options::{ClientOptions, FindOptions, ServerAddress, UpdateOptions},
+    Client,
+};
 use std::{env, time::Duration};
 
 use std::{
@@ -68,14 +72,21 @@ impl MongoHandler {
             Err(e) => return Err(Box::new(e)),
         };
 
-
-        let host = ServerAddress::Tcp{
+        let host = ServerAddress::Tcp {
             host: host,
             port: Some(port_u16),
         };
 
-        let client_credentials = mongodb::options::Credential::builder().username(username).password(password).source(source).build();
-        let client_options = mongodb::options::ClientOptions::builder().credential(client_credentials).connect_timeout(Duration::from_millis(500)).hosts(vec![host]).build();
+        let client_credentials = mongodb::options::Credential::builder()
+            .username(username)
+            .password(password)
+            .source(source)
+            .build();
+        let client_options = mongodb::options::ClientOptions::builder()
+            .credential(client_credentials)
+            .connect_timeout(Duration::from_millis(500))
+            .hosts(vec![host])
+            .build();
 
         let client = Client::with_options(client_options)?;
 
