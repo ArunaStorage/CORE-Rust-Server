@@ -45,6 +45,13 @@ spec:
                 key: secretkey
                 name: s3
           image: harbor.computational.bio.uni-giessen.de/scienceobjectsdb/rust-server:latest
+          resources:
+            limits:
+              cpu: 2000m
+              memory: 2000Mi
+            requests:
+              cpu: 2000m
+              memory: 2000Mi
           name: objectshandler
           imagePullPolicy: Always
           command: [/app/core_server]
@@ -71,7 +78,7 @@ spec:
       port: 9000
       targetPort: 9000
 ---
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: objectsdb
@@ -86,8 +93,11 @@ spec:
     http:
       paths:
       - backend:
-          serviceName: objectsdb
-          servicePort: 9000
+          service:
+            name: objectsdb
+            port:
+              number: 9000
+        pathType: Prefix
         path: /
   tls: # < placing a host in the TLS config will indicate a certificate should be created
   - hosts:

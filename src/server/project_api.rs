@@ -129,11 +129,25 @@ impl<T: Database> ProjectApi for ProjectServer<T> {
         let _get_request = request.get_ref();
         let id = self.auth_handler.user_id(request.metadata()).await?;
 
-        let query = doc! {
-            "users.user_id": id.as_str()
-        };
+        let mut projects: Vec<ProjectEntry> = Vec::new();
 
-        let projects: Vec<ProjectEntry> = self.mongo_client.find_by_key(query).await?;
+        if request.metadata().contains_key(crate::auth::project_authorization_handler::API_TOKEN_ENTRY_KEY) {
+            let api_token =  self.auth_handler.project_id_from_api_token(request.metadata()).await?;
+            let project_id = api_token.project_id;
+
+
+            let query = doc! {
+                "id": project_id,
+            };
+
+            projects = self.mongo_client.find_by_key(query).await?;
+        } else {
+            let query = doc! {
+                "users.user_id": id.as_str()
+            };
+    
+            projects = self.mongo_client.find_by_key(query).await?;
+        }
 
         let mut proto_entries: Vec<Project> = Vec::new();
 

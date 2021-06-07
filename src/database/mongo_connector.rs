@@ -5,7 +5,7 @@ use std::convert::TryFrom;
 use futures::stream::StreamExt;
 use mongodb::{
     bson::{from_document, to_document, Bson, Document},
-    options::{ClientOptions, FindOptions, ServerAddress, UpdateOptions},
+    options::{FindOptions, ServerAddress, UpdateOptions},
     Client,
 };
 use std::{env, time::Duration};

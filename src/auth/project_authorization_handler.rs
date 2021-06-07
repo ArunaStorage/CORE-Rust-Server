@@ -24,8 +24,8 @@ enum TokenType {
     OAuth2,
 }
 
-const API_TOKEN_ENTRY_KEY: &str = "API_TOKEN";
-const USER_TOKEN_ENTRY_KEY: &str = "AccessToken";
+pub const API_TOKEN_ENTRY_KEY: &str = "API_TOKEN";
+pub const USER_TOKEN_ENTRY_KEY: &str = "AccessToken";
 
 type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
@@ -91,39 +91,7 @@ impl<T: Database> ProjectAuthzHandler<T> {
         project_id: String,
         requested_rights: Vec<Right>,
     ) -> Result<(), tonic::Status> {
-        let token = match metadata.get(API_TOKEN_ENTRY_KEY) {
-            Some(meta_token) => match meta_token.to_str() {
-                Ok(token) => token,
-                Err(e) => {
-                    log::error!("{:?}", e);
-                    return Err(tonic::Status::internal(format!("error decoding token")));
-                }
-            },
-            None => {
-                return Err(tonic::Status::unauthenticated(format!(
-                    "could not find token {}",
-                    API_TOKEN_ENTRY_KEY
-                )));
-            }
-        };
-
-        let query = doc! {
-            "token": token
-        };
-
-        let db_token = match self
-            .database_handler
-            .find_one_by_key::<APIToken>(query)
-            .await?
-        {
-            Some(value) => value,
-            None => {
-                return Err(tonic::Status::unauthenticated(
-                    "could not authenticate user from api token",
-                ))
-            }
-        };
-
+        let db_token = self.project_id_from_api_token(metadata).await?;
         if db_token.project_id != project_id {
             return Err(tonic::Status::permission_denied(
                 "could not authorize for requested project",
@@ -256,7 +224,7 @@ impl<T: Database> ProjectAuthzHandler<T> {
             Some(value) => value.to_str().unwrap(),
             None => {
                 return Err(tonic::Status::internal(
-                    "could not get user_id_from access token",
+                    "could not read API token",
                 ));
             }
         };
@@ -346,6 +314,43 @@ impl<T: Database> AuthHandler for ProjectAuthzHandler<T> {
         }
 
         return Err(tonic::Status::unauthenticated(format!("could not find authentication token, please provide a token in metadata either with {} or {}", USER_TOKEN_ENTRY_KEY, API_TOKEN_ENTRY_KEY)));
+    }
+
+    async fn project_id_from_api_token(&self, metadata: &MetadataMap) -> std::result::Result<APIToken, tonic::Status> {
+        let token = match metadata.get(API_TOKEN_ENTRY_KEY) {
+            Some(meta_token) => match meta_token.to_str() {
+                Ok(token) => token,
+                Err(e) => {
+                    log::error!("{:?}", e);
+                    return Err(tonic::Status::internal(format!("error decoding token")));
+                }
+            },
+            None => {
+                return Err(tonic::Status::unauthenticated(format!(
+                    "could not find token {}",
+                    API_TOKEN_ENTRY_KEY
+                )));
+            }
+        };
+
+        let query = doc! {
+            "token": token
+        };
+
+        let db_token = match self
+            .database_handler
+            .find_one_by_key::<APIToken>(query)
+            .await?
+        {
+            Some(value) => value,
+            None => {
+                return Err(tonic::Status::unauthenticated(
+                    "could not authenticate user from api token",
+                ))
+            }
+        };
+
+        return Ok(db_token)
     }
 }
 

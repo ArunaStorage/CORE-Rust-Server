@@ -2,7 +2,7 @@ use async_trait::async_trait;
 
 use tonic::metadata::MetadataMap;
 
-use crate::database::common_models::{Resource, Right};
+use crate::database::{apitoken::APIToken, common_models::{Resource, Right}};
 
 use super::authenticator::AuthHandler;
 
@@ -22,5 +22,11 @@ impl AuthHandler for TestAuthenticator {
 
     async fn user_id(&self, _metadata: &MetadataMap) -> std::result::Result<String, tonic::Status> {
         Ok("testuser".to_string())
+    }
+
+    async fn project_id_from_api_token(&self, metadata: &MetadataMap) -> std::result::Result<crate::database::apitoken::APIToken, tonic::Status> {
+        Ok(APIToken{
+            ..Default::default()
+        })
     }
 }
