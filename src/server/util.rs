@@ -1,4 +1,4 @@
-use crate::database::common_models::DatabaseModel;
+use crate::models::common_models::DatabaseModel;
 
 // A simple helper function to turn an option value into a tonic error. This can be used to check if a required field
 // that is defined as optional in the gRPC API is present in a request. Can be used to remove some boilerplate code.
