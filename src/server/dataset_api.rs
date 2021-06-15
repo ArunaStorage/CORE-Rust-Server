@@ -14,11 +14,12 @@ use tonic::Response;
 
 use log::error;
 
+use crate::database::database::Database;
+use crate::models::common_models::Status;
 use crate::{
     auth::authenticator::AuthHandler,
-    database::{
+    models::{
         common_models::{Resource, Right},
-        database::Database,
         dataset_model::DatasetEntry,
         dataset_object_group::{ObjectGroup, ObjectGroupRevision},
         dataset_version::DatasetVersion,
@@ -221,8 +222,85 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
         &self,
         request: tonic::Request<models::Id>,
     ) -> Result<Response<models::Empty>, tonic::Status> {
-        let _inner_request = request.get_ref();
-        return Err(tonic::Status::unimplemented("not implemented"));
+        let inner_request = request.get_ref();
+        self.auth_handler
+            .authorize(
+                request.metadata(),
+                Resource::DatasetVersion,
+                Right::Write,
+                inner_request.id.clone(),
+            )
+            .await?;
+
+        let query = doc! {
+            "id": inner_request.id.as_str()
+        };
+
+        let value = match mongodb::bson::to_document(&Status::Deleting) {
+            Ok(value) => value,
+            Err(e) => {
+                error!("{:?}", e);
+                return Err(tonic::Status::internal(format!(
+                    "error when converting request to document"
+                )));
+            }
+        };
+
+        let update = doc! {
+            "status":  value
+        };
+
+        let version_query = doc! {
+            "dataset_id": inner_request.id.as_str()
+        };
+
+        let object_query = doc! {
+            "dataset_id": inner_request.id.as_str()
+        };
+
+        self.database_client
+            .update_field::<DatasetEntry>(query, update)
+            .await?;
+        let versions = self
+            .database_client
+            .find_by_key::<DatasetVersion>(version_query)
+            .await?;
+
+        let mut version_delete_futures = Vec::new();
+        for version in versions {
+            let delete_query = doc! {
+                "id": version.id
+            };
+
+            version_delete_futures
+                .push(self.database_client.delete::<DatasetVersion>(delete_query));
+        }
+
+        join_all(version_delete_futures).await;
+
+        let objects_groups = self
+            .database_client
+            .find_by_key::<ObjectGroup>(object_query)
+            .await?;
+
+        let mut object_delete_futures = Vec::new();
+        for object_group in objects_groups {
+            let delete_query = doc! {
+                "id": object_group.id
+            };
+
+            object_delete_futures.push(self.database_client.delete::<ObjectGroup>(delete_query));
+        }
+
+        join_all(object_delete_futures).await;
+
+        let query = doc! {
+            "id": inner_request.id.as_str()
+        };
+
+        self.database_client.delete::<DatasetEntry>(query).await?;
+
+        return Ok(Response::new(models::Empty {}));
     }
 
     async fn release_dataset_version(
@@ -252,10 +330,10 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
             );
 
             poll_authz_queue.push(authz_request);
-        }
 
-        if poll_authz_queue.len() == 100 {
-            poll_authz_queue.next().await.unwrap()?;
+            if poll_authz_queue.len() == 100 {
+                poll_authz_queue.next().await.unwrap()?;
+            }
         }
 
         while let Some(value) = poll_authz_queue.next().await {
@@ -386,8 +464,24 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
 
     async fn delete_dataset_version(
         &self,
-        _request: tonic::Request<models::Id>,
+        request: tonic::Request<models::Id>,
     ) -> Result<Response<models::Empty>, tonic::Status> {
-        todo!()
+        let inner_request = request.get_ref();
+        self.auth_handler
+            .authorize(
+                request.metadata(),
+                Resource::DatasetVersion,
+                Right::Write,
+                inner_request.id.clone(),
+            )
+            .await?;
+
+        let query = doc! {
+            "id": inner_request.id.as_str()
+        };
+
+        self.database_client.delete::<DatasetVersion>(query).await?;
+
+        return Ok(Response::new(models::Empty {}));
     }
 }

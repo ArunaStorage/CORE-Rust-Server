@@ -18,6 +18,8 @@ mod auth;
 mod database;
 mod objectstorage;
 mod server;
+mod test_util;
+mod models;
 
 use config::{Config, File};
 use std::sync::RwLock;

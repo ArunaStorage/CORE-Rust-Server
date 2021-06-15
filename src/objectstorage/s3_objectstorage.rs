@@ -9,15 +9,17 @@ use rusoto_core::{
 use rusoto_s3::{
     util::{PreSignedRequest, PreSignedRequestOption},
     CompleteMultipartUploadRequest, CompletedMultipartUpload, CreateMultipartUploadRequest,
-    GetObjectRequest, PutObjectRequest, S3Client, UploadPartRequest, S3,
+    DeleteObjectRequest, GetObjectRequest, PutObjectRequest, S3Client, UploadPartRequest, S3,
 };
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services::CompletedParts;
 
 use super::objectstorage::StorageHandler;
-use crate::database::{
+use crate::models::{
     common_models::{IndexLocation, Location, LocationType},
     dataset_object_group::DatasetObject,
 };
+
+use crate::SETTINGS;
 
 type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
@@ -37,7 +39,15 @@ pub struct S3Handler {
 }
 
 impl S3Handler {
-    pub fn new(endpoint: String, region: String, bucket: String) -> Self {
+    pub fn new() -> Self {
+        let endpoint = SETTINGS
+            .read()
+            .unwrap()
+            .get_str("Storage.Endpoint")
+            .unwrap_or("localhost".to_string());
+        let bucket = SETTINGS.read().unwrap().get_str("Storage.Bucket").unwrap();
+        let region = "RegionOne".to_string();
+
         let creds = DefaultCredentialsProvider::new().unwrap();
 
         let region = Region::Custom {
@@ -65,8 +75,8 @@ impl StorageHandler for S3Handler {
         dataset_id: String,
         object_id: String,
         filename: String,
-        _index: Option<crate::database::common_models::IndexLocation>,
-    ) -> ResultWrapper<crate::database::common_models::Location> {
+        _index: Option<crate::models::common_models::IndexLocation>,
+    ) -> ResultWrapper<crate::models::common_models::Location> {
         let object_key = format!("{}/{}/{}/{}", project_id, dataset_id, object_id, filename);
         let location = Location {
             bucket: self.bucket.clone(),
@@ -84,7 +94,7 @@ impl StorageHandler for S3Handler {
 
     async fn create_download_link(
         &self,
-        location: crate::database::common_models::Location,
+        location: crate::models::common_models::Location,
     ) -> ResultWrapper<String> {
         let object_request = GetObjectRequest {
             bucket: location.bucket,
@@ -104,7 +114,7 @@ impl StorageHandler for S3Handler {
 
     async fn create_upload_link(
         &self,
-        location: crate::database::common_models::Location,
+        location: crate::models::common_models::Location,
     ) -> ResultWrapper<String> {
         let object_request = PutObjectRequest {
             bucket: location.bucket,
@@ -241,6 +251,26 @@ impl StorageHandler for S3Handler {
 
         return Ok(());
     }
+
+    async fn delete_object(&self, location: Location) -> std::result::Result<(), tonic::Status> {
+        match self
+            .client
+            .delete_object(DeleteObjectRequest {
+                bucket: location.bucket.clone(),
+                key: location.key.clone(),
+                ..Default::default()
+            })
+            .await
+        {
+            Ok(_) => (),
+            Err(e) => {
+                log::error!("{:?}", e.to_string());
+                return Err(tonic::Status::internal("error deleting object"));
+            }
+        }
+
+        return Ok(());
+    }
 }
 
 #[cfg(test)]
@@ -251,7 +281,7 @@ mod tests {
     use scienceobjectsdb_rust_api::sciobjectsdbapi::services::{self, CreateObjectRequest};
 
     use crate::{
-        database::dataset_object_group::DatasetObject, objectstorage::objectstorage::StorageHandler,
+        models::dataset_object_group::DatasetObject, objectstorage::objectstorage::StorageHandler,
     };
 
     use super::S3Handler;
@@ -292,14 +322,8 @@ mod tests {
         let uuid = uuid::Uuid::new_v4();
 
         let test_data = "testdata".to_string();
-        let s3_endpoint = SETTINGS
-            .read()
-            .unwrap()
-            .get_str("Storage.Endpoint")
-            .unwrap_or("localhost".to_string());
-        let s3_bucket = SETTINGS.read().unwrap().get_str("Storage.Bucket").unwrap();
 
-        let s3_handler = S3Handler::new(s3_endpoint, "RegionOne".to_string(), s3_bucket);
+        let s3_handler = S3Handler::new();
         let location = s3_handler
             .create_location(
                 "testproject".to_string(),
@@ -394,7 +418,7 @@ mod tests {
             .unwrap_or("localhost".to_string());
         let s3_bucket = SETTINGS.read().unwrap().get_str("Storage.Bucket").unwrap();
 
-        let s3_handler = S3Handler::new(s3_endpoint, "RegionOne".to_string(), s3_bucket.clone());
+        let s3_handler = S3Handler::new();
 
         let create_object_req = CreateObjectRequest {
             filename: "testfile".to_string(),

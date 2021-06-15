@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services::CompletedParts;
 
-use crate::database::{
+use crate::models::{
     common_models::{IndexLocation, Location},
     dataset_object_group::DatasetObject,
 };
@@ -35,5 +35,6 @@ pub trait StorageHandler: Send + Sync {
         objects: &Vec<CompletedParts>,
         upload_id: String,
     ) -> Result<(), tonic::Status>;
+    async fn delete_object(&self, location: Location) -> std::result::Result<(), tonic::Status>;
     fn get_bucket(&self) -> String;
 }

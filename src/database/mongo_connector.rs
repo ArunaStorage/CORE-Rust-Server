@@ -18,15 +18,9 @@ use std::{
 use log::error;
 use mongodb::{bson::doc, options::FindOneOptions};
 
-use super::{
-    common_models::{DatabaseModel, Right, User},
-    database::Database,
-    dataset_object_group::DatasetObject,
-    dataset_object_group::ObjectGroup,
-    dataset_object_group::ObjectGroupRevision,
-    project_model::ProjectEntry,
-};
-use crate::SETTINGS;
+use super::database::Database;
+
+use crate::{SETTINGS, models::{common_models::{DatabaseModel, Right, Status, User}, dataset_object_group::{DatasetObject, ObjectGroup, ObjectGroupRevision}, project_model::ProjectEntry}};
 
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services;
 
@@ -408,6 +402,55 @@ impl Database for MongoHandler {
         };
 
         return Ok(option_value);
+    }
+
+    async fn delete<'de, T: DatabaseModel<'de>>(
+        &self,
+        query: Document,
+    ) -> Result<(), tonic::Status> {
+        match self.collection::<T>().delete_one(query, None).await {
+            Ok(_) => (),
+            Err(e) => {
+                log::error!("{:?}", e);
+                tonic::Status::internal(format!("could not delete object"));
+            }
+        }
+
+        return Ok(());
+    }
+
+    async fn update_status<'de, T: DatabaseModel<'de>>(
+        &self,
+        id: &str,
+        status: Status,
+    ) -> Result<(), tonic::Status> {
+        let query = doc! {
+            "id": id
+        };
+
+        let value = match mongodb::bson::to_document(&status) {
+            Ok(value) => value,
+            Err(e) => {
+                error!("{:?}", e);
+                return Err(tonic::Status::internal(format!(
+                    "error when converting request to document"
+                )));
+            }
+        };
+
+        let update = doc! {
+            "status":  value
+        };
+
+        match self.collection::<T>().update_one(query, update, None).await {
+            Ok(_) => (),
+            Err(e) => {
+                error!("{:?}", e);
+                return Err(tonic::Status::internal(format!("error on status update")));
+            }
+        }
+
+        return Ok(());
     }
 }
 

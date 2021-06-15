@@ -13,7 +13,7 @@ use scienceobjectsdb_rust_api::sciobjectsdbapi::models;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services;
 use tonic::Response;
 
-use crate::database::{
+use crate::models::{
     common_models::{Resource, Right},
     dataset_object_group,
     dataset_object_group::ObjectGroup,

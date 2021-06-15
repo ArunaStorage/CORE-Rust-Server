@@ -28,20 +28,9 @@ type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send 
 
 /// Starts the grpc server. The configuration is read from the config file handed over at startup
 pub async fn start_server() -> ResultWrapper<()> {
-    let s3_endpoint = SETTINGS
-        .read()
-        .unwrap()
-        .get_str("Storage.Endpoint")
-        .unwrap_or("localhost".to_string());
-    let s3_bucket = SETTINGS.read().unwrap().get_str("Storage.Bucket").unwrap();
-
     let mongo_handler = Arc::new(MongoHandler::new().await?);
 
-    let object_storage_handler = Arc::new(S3Handler::new(
-        s3_endpoint.to_string(),
-        "RegionOne".to_string(),
-        s3_bucket.clone(),
-    ));
+    let object_storage_handler = Arc::new(S3Handler::new());
 
     let auth_type_handler = SETTINGS.read().unwrap().get_str("Authentication.Type")?;
     let auth_type_handler_str = auth_type_handler.as_str();

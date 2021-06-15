@@ -6,13 +6,15 @@ use prost_types::Timestamp;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::{models, services};
 use serde::{Deserialize, Serialize};
 
+use crate::database::database::Database;
+
 use super::{
     common_models::{
         to_labels, to_metadata, to_proto_labels, to_proto_metadata, to_proto_status, DatabaseModel,
         Label, Location, Metadata, Origin, Status, Version,
     },
-    database::Database,
 };
+
 
 use super::common_models;
 
@@ -75,12 +77,12 @@ impl ObjectGroup {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Default)]
 pub struct ObjectGroupRevision {
     pub id: String,
     pub datasete_id: String,
     pub object_group_id: String,
-    pub date_create: DateTime<Utc>,
+    pub date_create: Option<DateTime<Utc>>,
     pub labels: Vec<Label>,
     pub metadata: Vec<Metadata>,
     pub objects_count: i64,
@@ -88,6 +90,7 @@ pub struct ObjectGroupRevision {
     pub version: Version,
     pub revision: i64,
     pub dataset_versions: Vec<String>,
+    pub status: Status,
 }
 
 impl DatabaseModel<'_> for ObjectGroupRevision {
@@ -120,11 +123,12 @@ impl ObjectGroupRevision {
         let objects_count = objects.len().clone();
 
         let object_group = ObjectGroupRevision {
+            status: Status::Initializing,
             id: uuid.to_string(),
             labels: to_labels(&request.labels),
             metadata: to_metadata(&request.metadata),
             datasete_id: object_group.dataset_id.clone(),
-            date_create: DateTime::from(timestamp),
+            date_create: Some(DateTime::from(timestamp)),
             objects: objects,
             objects_count: objects_count as i64,
             object_group_id: object_group.id.clone(),
@@ -159,7 +163,7 @@ impl ObjectGroupRevision {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Default)]
 pub struct DatasetObject {
     pub id: String,
     pub filename: String,
@@ -167,7 +171,7 @@ pub struct DatasetObject {
     pub origin: Origin,
     pub content_len: i64,
     pub location: Location,
-    pub created: DateTime<Utc>,
+    pub created: Option<DateTime<Utc>>,
     pub metadata: Vec<Metadata>,
     pub upload_id: String,
 }
@@ -212,7 +216,7 @@ impl DatasetObject {
             origin: Origin::default(),
             content_len: request.content_len,
             location: location,
-            created: DateTime::from(timestamp),
+            created: Some(DateTime::from(timestamp)),
             upload_id: "".to_string(),
             metadata: to_metadata(&request.metadata),
         };
@@ -221,7 +225,7 @@ impl DatasetObject {
     }
 
     pub fn to_proto_object(&self) -> models::Object {
-        let system_time: SystemTime = self.created.into();
+        let system_time: SystemTime = self.created.unwrap().into();
         let timestamp = Timestamp::from(system_time);
 
         let proto_object = models::Object {

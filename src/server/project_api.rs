@@ -1,19 +1,21 @@
 use std::sync::Arc;
 
+use crate::database::database::Database;
+use crate::models::common_models::Status;
 use crate::server::util;
+use log::error;
 use mongodb::bson::doc;
 
 use scienceobjectsdb_rust_api::sciobjectsdbapi::models::{self};
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services::project_api_server::ProjectApi;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::{models::Project, services};
-use tonic::Response;
+use tonic::{Request, Response};
 
 use crate::{
     auth::authenticator::AuthHandler,
-    database::{
+    models::{
         apitoken::APIToken,
         common_models::{Resource, Right},
-        database::Database,
         dataset_model::DatasetEntry,
         project_model::ProjectEntry,
     },
@@ -131,10 +133,15 @@ impl<T: Database> ProjectApi for ProjectServer<T> {
 
         let mut projects: Vec<ProjectEntry> = Vec::new();
 
-        if request.metadata().contains_key(crate::auth::project_authorization_handler::API_TOKEN_ENTRY_KEY) {
-            let api_token =  self.auth_handler.project_id_from_api_token(request.metadata()).await?;
+        if request
+            .metadata()
+            .contains_key(crate::auth::project_authorization_handler::API_TOKEN_ENTRY_KEY)
+        {
+            let api_token = self
+                .auth_handler
+                .project_id_from_api_token(request.metadata())
+                .await?;
             let project_id = api_token.project_id;
-
 
             let query = doc! {
                 "id": project_id,
@@ -145,7 +152,7 @@ impl<T: Database> ProjectApi for ProjectServer<T> {
             let query = doc! {
                 "users.user_id": id.as_str()
             };
-    
+
             projects = self.mongo_client.find_by_key(query).await?;
         }
 
@@ -226,7 +233,16 @@ impl<T: Database> ProjectApi for ProjectServer<T> {
         &self,
         request: tonic::Request<models::Id>,
     ) -> Result<Response<models::Empty>, tonic::Status> {
-        let _inner_request = request.get_ref();
-        return Err(tonic::Status::unimplemented("not implemented"));
+        let inner_request = request.get_ref();
+        self.auth_handler
+            .authorize(
+                request.metadata(),
+                Resource::Project,
+                Right::Write,
+                inner_request.id.clone(),
+            )
+            .await?;
+
+        unimplemented!();
     }
 }

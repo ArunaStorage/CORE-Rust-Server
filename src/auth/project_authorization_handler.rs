@@ -4,16 +4,15 @@ use mongodb::bson::doc;
 use std::collections::HashSet;
 use tonic::metadata::MetadataMap;
 
-use crate::database::{
+use crate::{database::database::Database, models::{
     apitoken::APIToken,
     common_models::DatabaseModel,
     common_models::Right,
-    database::Database,
     dataset_model::DatasetEntry,
     dataset_object_group::{ObjectGroup, ObjectGroupRevision},
     dataset_version::DatasetVersion,
     project_model::ProjectEntry,
-};
+}};
 
 use super::{authenticator::AuthHandler, oauth2_handler};
 use async_trait::async_trait;
@@ -51,7 +50,7 @@ impl<T: Database> ProjectAuthzHandler<T> {
         id: String,
         project_id: String,
         metadata: &MetadataMap,
-        right: crate::database::common_models::Right,
+        right: crate::models::common_models::Right,
     ) -> Result<(), tonic::Status> {
         let query = doc! {
             "id": &id,
@@ -223,9 +222,7 @@ impl<T: Database> ProjectAuthzHandler<T> {
         let api_token = match metadata.get(API_TOKEN_ENTRY_KEY) {
             Some(value) => value.to_str().unwrap(),
             None => {
-                return Err(tonic::Status::internal(
-                    "could not read API token",
-                ));
+                return Err(tonic::Status::internal("could not read API token"));
             }
         };
 
@@ -255,25 +252,25 @@ impl<T: Database> AuthHandler for ProjectAuthzHandler<T> {
     async fn authorize(
         &self,
         metadata: &tonic::metadata::MetadataMap,
-        resource: crate::database::common_models::Resource,
-        right: crate::database::common_models::Right,
+        resource: crate::models::common_models::Resource,
+        right: crate::models::common_models::Right,
         id: String,
     ) -> std::result::Result<(), tonic::Status> {
         let project_id_result = match resource {
-            crate::database::common_models::Resource::Project => Ok(id.clone()),
-            crate::database::common_models::Resource::Dataset => {
+            crate::models::common_models::Resource::Project => Ok(id.clone()),
+            crate::models::common_models::Resource::Dataset => {
                 self.project_id_of_dataset(id.to_string().clone()).await
             }
-            crate::database::common_models::Resource::DatasetVersion => {
+            crate::models::common_models::Resource::DatasetVersion => {
                 self.project_id_of_dataset_version(id.clone()).await
             }
-            crate::database::common_models::Resource::ObjectGroup => {
+            crate::models::common_models::Resource::ObjectGroup => {
                 self.project_id_of_object_group(id.clone()).await
             }
-            crate::database::common_models::Resource::Object => {
+            crate::models::common_models::Resource::Object => {
                 self.project_id_of_object(id.clone()).await
             }
-            crate::database::common_models::Resource::ObjectGroupRevision => {
+            crate::models::common_models::Resource::ObjectGroupRevision => {
                 self.project_id_of_object_group_revision(id.clone()).await
             }
         };
@@ -310,13 +307,16 @@ impl<T: Database> AuthHandler for ProjectAuthzHandler<T> {
         if metadata.contains_key(USER_TOKEN_ENTRY_KEY) {
             return self.user_id_from_access_token(metadata).await;
         } else if metadata.contains_key(API_TOKEN_ENTRY_KEY) {
-            return self.user_id_from_api_token(metadata).await
+            return self.user_id_from_api_token(metadata).await;
         }
 
         return Err(tonic::Status::unauthenticated(format!("could not find authentication token, please provide a token in metadata either with {} or {}", USER_TOKEN_ENTRY_KEY, API_TOKEN_ENTRY_KEY)));
     }
 
-    async fn project_id_from_api_token(&self, metadata: &MetadataMap) -> std::result::Result<APIToken, tonic::Status> {
+    async fn project_id_from_api_token(
+        &self,
+        metadata: &MetadataMap,
+    ) -> std::result::Result<APIToken, tonic::Status> {
         let token = match metadata.get(API_TOKEN_ENTRY_KEY) {
             Some(meta_token) => match meta_token.to_str() {
                 Ok(token) => token,
@@ -350,7 +350,7 @@ impl<T: Database> AuthHandler for ProjectAuthzHandler<T> {
             }
         };
 
-        return Ok(db_token)
+        return Ok(db_token);
     }
 }
 
