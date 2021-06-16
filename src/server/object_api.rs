@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use futures::future::try_join_all;
-use futures::join;
 use log::error;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::models;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services::dataset_objects_service_server::DatasetObjectsService;
