@@ -1,5 +1,6 @@
 use std::{error::Error, fmt, sync::Arc};
 
+use log::error;
 use mongodb::bson::doc;
 use std::collections::HashSet;
 use tonic::metadata::MetadataMap;
@@ -8,7 +9,6 @@ use crate::{
     database::database::Database,
     models::{
         apitoken::APIToken,
-        common_models::DatabaseModel,
         common_models::Right,
         dataset_model::DatasetEntry,
         dataset_object_group::{ObjectGroup, ObjectGroupRevision},
@@ -51,7 +51,6 @@ impl<T: Database> ProjectAuthzHandler<T> {
     async fn authorize_from_user_token(
         &self,
         id: String,
-        project_id: String,
         metadata: &MetadataMap,
         right: crate::models::common_models::Right,
     ) -> Result<(), tonic::Status> {
@@ -225,6 +224,7 @@ impl<T: Database> ProjectAuthzHandler<T> {
         {
             Ok(value) => value,
             Err(e) => {
+                error!("{:?}", e);
                 return Err(tonic::Status::unauthenticated(
                     "could not authenticate from api_token",
                 ))
@@ -277,7 +277,7 @@ impl<T: Database> AuthHandler for ProjectAuthzHandler<T> {
 
         if metadata.contains_key(USER_TOKEN_ENTRY_KEY) {
             return self
-                .authorize_from_user_token(id, project_id, metadata, right)
+                .authorize_from_user_token(id, metadata, right)
                 .await;
         } else if metadata.contains_key(API_TOKEN_ENTRY_KEY) {
             return self
@@ -332,6 +332,7 @@ impl<T: Database> AuthHandler for ProjectAuthzHandler<T> {
         {
             Ok(value) => value,
             Err(e) => {
+                log::error!("{:?}", e);
                 return Err(tonic::Status::unauthenticated(
                     "could not authenticate from api_token",
                 ))
@@ -365,21 +366,5 @@ impl fmt::Display for InvalidError {
 impl Error for InvalidError {
     fn description(&self) -> &str {
         &self.details
-    }
-}
-
-fn option_to_error<'de, T: DatabaseModel<'de>>(
-    option: Option<T>,
-    id: &str,
-) -> std::result::Result<T, tonic::Status> {
-    match option {
-        Some(value) => return Ok(value),
-        None => {
-            let type_name = T::get_model_name().unwrap();
-            return Err(tonic::Status::internal(format!(
-                "could find {} with id {}",
-                type_name, id
-            )));
-        }
     }
 }

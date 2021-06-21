@@ -6,7 +6,6 @@ use crate::models::{
     dataset_object_group::DatasetObject,
 };
 
-type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 #[async_trait]
 pub trait StorageHandler: Send + Sync {
     async fn create_location(
@@ -16,7 +15,7 @@ pub trait StorageHandler: Send + Sync {
         object_id: String,
         filename: String,
         index: Option<IndexLocation>,
-    ) -> ResultWrapper<Location>;
+    ) -> Result<Location, tonic::Status>;
     async fn create_download_link(
         &self,
         location: Location,

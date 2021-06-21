@@ -12,7 +12,7 @@ use crate::{
 
 use super::common::CommonHandler;
 
-pub type ReadHandler<T: Database> = CommonHandler<T>;
+pub type ReadHandler<T> = CommonHandler<T>;
 
 impl<T> ReadHandler<T>
 where

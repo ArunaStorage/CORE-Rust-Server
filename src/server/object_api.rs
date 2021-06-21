@@ -1,28 +1,22 @@
 use std::sync::Arc;
 
-use futures::future::try_join_all;
-use log::error;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::models;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services::dataset_objects_service_server::DatasetObjectsService;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::{models::Empty, services};
-use tonic::Request;
 use tonic::Response;
 
-use mongodb::bson::doc;
 
 use crate::database::database::Database;
 use crate::handler::common::HandlerWrapper;
-use crate::models::common_models::Status;
 use crate::{
     auth::authenticator::AuthHandler,
     models::{
         common_models::{Resource, Right},
         dataset_object_group::ObjectGroup,
-        dataset_version::DatasetVersion,
     },
 };
 use crate::{
-    models::dataset_object_group::ObjectGroupRevision, objectstorage::objectstorage::StorageHandler,
+    models::dataset_object_group::ObjectGroupRevision,
 };
 
 use crate::server::util;
@@ -146,7 +140,7 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
 
     async fn get_current_object_group_revision(
         &self,
-        request: tonic::Request<models::Id>,
+        _request: tonic::Request<models::Id>,
     ) -> Result<Response<services::GetObjectGroupRevisionResponse>, tonic::Status> {
         unimplemented!();
     }

@@ -9,7 +9,7 @@ use crate::{
 
 use super::common::CommonHandler;
 
-pub type UpdateHandler<T: Database> = CommonHandler<T>;
+pub type UpdateHandler<T> = CommonHandler<T>;
 
 impl<T> UpdateHandler<T>
 where

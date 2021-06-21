@@ -8,8 +8,6 @@ use scienceobjectsdb_rust_api::sciobjectsdbapi::{
 
 use super::common_models::*;
 
-type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
-
 #[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq, Eq)]
 pub struct ProjectEntry {
     pub id: String,

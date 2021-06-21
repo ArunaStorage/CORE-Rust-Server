@@ -42,8 +42,6 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
             )
             .await?;
 
-        let user_id = self.auth_handler.user_id(request.metadata()).await?;
-
         let dataset = self
             .handler_wrapper
             .create_handler
@@ -135,7 +133,7 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
 
     async fn get_current_object_group_revisions(
         &self,
-        request: tonic::Request<models::Id>,
+        _request: tonic::Request<models::Id>,
     ) -> Result<Response<services::ObjectGroupRevisions>, tonic::Status> {
         unimplemented!()
     }
@@ -150,7 +148,7 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
 
     async fn delete_dataset(
         &self,
-        request: tonic::Request<models::Id>,
+        _request: tonic::Request<models::Id>,
     ) -> Result<Response<models::Empty>, tonic::Status> {
         unimplemented!()
     }
@@ -237,7 +235,7 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
 
     async fn delete_dataset_version(
         &self,
-        request: tonic::Request<models::Id>,
+        _request: tonic::Request<models::Id>,
     ) -> Result<Response<models::Empty>, tonic::Status> {
         unimplemented!()
     }

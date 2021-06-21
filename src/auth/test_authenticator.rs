@@ -29,7 +29,7 @@ impl AuthHandler for TestAuthenticator {
 
     async fn project_id_from_api_token(
         &self,
-        metadata: &MetadataMap,
+        _metadata: &MetadataMap,
     ) -> std::result::Result<crate::models::apitoken::APIToken, tonic::Status> {
         Ok(APIToken {
             ..Default::default()

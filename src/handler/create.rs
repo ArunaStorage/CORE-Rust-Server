@@ -17,7 +17,7 @@ use scienceobjectsdb_rust_api::sciobjectsdbapi::services::{
 
 use super::common::CommonHandler;
 
-pub type CreateHandler<T: Database> = CommonHandler<T>;
+pub type CreateHandler<T> = CommonHandler<T>;
 
 impl<T> CreateHandler<T>
 where

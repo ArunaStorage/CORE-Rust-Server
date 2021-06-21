@@ -2,8 +2,6 @@ use crate::handler::common::HandlerWrapper;
 use crate::{auth::authenticator::AuthHandler, database::database::Database};
 use std::sync::Arc;
 
-use mongodb::bson::doc;
-
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services::CreateLinkResponse;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::{
     models::{Empty, Object},

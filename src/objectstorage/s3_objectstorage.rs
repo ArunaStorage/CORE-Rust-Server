@@ -22,8 +22,6 @@ use crate::models::{
 
 use crate::SETTINGS;
 
-type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
-
 /// Handles S3-compatible object storage backends for storing data
 /// Access is entirely provided via presigned URLs
 /// For large upload (>3GB) it is necessary to use multipart uploads, they are provided via
@@ -77,7 +75,7 @@ impl StorageHandler for S3Handler {
         object_id: String,
         filename: String,
         _index: Option<crate::models::common_models::IndexLocation>,
-    ) -> ResultWrapper<crate::models::common_models::Location> {
+    ) -> Result<crate::models::common_models::Location, tonic::Status> {
         let object_key = format!("{}/{}/{}/{}", project_id, dataset_id, object_id, filename);
         let location = Location {
             bucket: self.bucket.clone(),
@@ -424,11 +422,6 @@ mod tests {
 
         let uuid = uuid::Uuid::new_v4();
 
-        let s3_endpoint = SETTINGS
-            .read()
-            .unwrap()
-            .get_str("Storage.Endpoint")
-            .unwrap_or("localhost".to_string());
         let s3_bucket = SETTINGS.read().unwrap().get_str("Storage.Bucket").unwrap();
 
         let s3_handler = S3Handler::new();

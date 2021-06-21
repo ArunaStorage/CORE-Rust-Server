@@ -8,7 +8,7 @@ use crate::{
 
 use super::common::CommonHandler;
 
-pub type LoadHandler<T: Database> = CommonHandler<T>;
+pub type LoadHandler<T> = CommonHandler<T>;
 
 impl<T> LoadHandler<T>
 where

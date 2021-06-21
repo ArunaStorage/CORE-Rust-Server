@@ -1,9 +1,7 @@
-use std::collections::vec_deque;
 use std::sync::Arc;
 
 use crate::database::database::Database;
 use crate::handler::common::HandlerWrapper;
-use mongodb::bson::doc;
 
 use scienceobjectsdb_rust_api::sciobjectsdbapi::models::{self};
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services::project_api_server::ProjectApi;
@@ -13,7 +11,6 @@ use tonic::Response;
 use crate::{
     auth::authenticator::AuthHandler,
     models::{
-        apitoken::APIToken,
         common_models::{Resource, Right},
         dataset_model::DatasetEntry,
         project_model::ProjectEntry,
