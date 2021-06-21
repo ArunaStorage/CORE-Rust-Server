@@ -1,4 +1,3 @@
-use chrono::{DateTime, Utc};
 use mongodb::bson::{doc, from_document, to_document, Document};
 use serde::{Deserialize, Serialize};
 
@@ -176,6 +175,8 @@ pub trait DatabaseModel<'de>: serde::Serialize + serde::de::DeserializeOwned + S
     }
 
     fn get_model_name() -> Result<String, tonic::Status>;
+
+    fn get_parent_field_name() -> Result<String, tonic::Status>;
 }
 
 pub fn to_metadata(proto_metadata: &Vec<models::Metadata>) -> Vec<Metadata> {

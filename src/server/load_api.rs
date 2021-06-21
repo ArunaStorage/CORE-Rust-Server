@@ -1,3 +1,4 @@
+use crate::handler::common::HandlerWrapper;
 use crate::{auth::authenticator::AuthHandler, database::database::Database};
 use std::sync::Arc;
 
@@ -13,17 +14,10 @@ use scienceobjectsdb_rust_api::sciobjectsdbapi::models;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services;
 use tonic::Response;
 
-use crate::models::{
-    common_models::{Resource, Right},
-    dataset_object_group,
-    dataset_object_group::ObjectGroup,
-};
-
-use crate::objectstorage::objectstorage::StorageHandler;
+use crate::models::common_models::{Resource, Right};
 
 pub struct LoadServer<T: Database + 'static> {
-    pub mongo_client: Arc<T>,
-    pub object_handler: Arc<dyn StorageHandler>,
+    pub wrapper: Arc<HandlerWrapper<T>>,
     pub auth_handler: Arc<dyn AuthHandler>,
 }
 
@@ -43,49 +37,21 @@ impl<T: Database> ObjectLoad for LoadServer<T> {
             )
             .await?;
 
-        let query = doc! {
-            "objects.id": upload_object.id.clone()
-        };
+        let link = self
+            .wrapper
+            .load_handler
+            .create_upload_link(upload_object.id.as_str())
+            .await?;
+        let object = self
+            .wrapper
+            .read_handler
+            .find_object(upload_object.id.as_str())
+            .await?;
 
-        let object_groups: Vec<dataset_object_group::ObjectGroupRevision> =
-            match self.mongo_client.find_by_key(query).await {
-                Ok(value) => value,
-                Err(e) => {
-                    log::error!("{:?}", e);
-                    return Err(tonic::Status::internal(format!("{:?}", e)));
-                }
-            };
-
-        for object_group in object_groups {
-            for object in object_group.objects {
-                let cloned_object = object.clone();
-                if object.id == upload_object.id {
-                    let link = match self
-                        .object_handler
-                        .create_upload_link(object.location)
-                        .await
-                    {
-                        Ok(link) => link,
-                        Err(e) => {
-                            log::error!("{:?}", e);
-                            return Err(tonic::Status::internal(format!("{:?}", e)));
-                        }
-                    };
-
-                    let message = CreateLinkResponse {
-                        object: Some(cloned_object.to_proto_object()),
-                        upload_link: link,
-                    };
-
-                    return Ok(Response::new(message));
-                }
-            }
-        }
-
-        Err(tonic::Status::not_found(format!(
-            "Could not find {}",
-            upload_object.id.clone()
-        )))
+        Ok(tonic::Response::new(services::CreateLinkResponse {
+            upload_link: link,
+            object: Some(object.to_proto_object()),
+        }))
     }
 
     async fn create_download_link(
@@ -102,49 +68,21 @@ impl<T: Database> ObjectLoad for LoadServer<T> {
             )
             .await?;
 
-        let query = doc! {
-            "objects.id": download_object.id.clone()
-        };
+        let link = self
+            .wrapper
+            .load_handler
+            .create_download_link(download_object.id.as_str())
+            .await?;
+        let object = self
+            .wrapper
+            .read_handler
+            .find_object(download_object.id.as_str())
+            .await?;
 
-        let object_groups: Vec<dataset_object_group::ObjectGroupRevision> =
-            match self.mongo_client.find_by_key(query).await {
-                Ok(value) => value,
-                Err(e) => {
-                    log::error!("{:?}", e);
-                    return Err(tonic::Status::internal(format!("{:?}", e)));
-                }
-            };
-
-        for object_group in object_groups {
-            for object in object_group.objects {
-                let cloned_object = object.clone();
-                if object.id == download_object.id {
-                    let link = match self
-                        .object_handler
-                        .create_download_link(object.location)
-                        .await
-                    {
-                        Ok(link) => link,
-                        Err(e) => {
-                            log::error!("{:?}", e);
-                            return Err(tonic::Status::internal(format!("{:?}", e)));
-                        }
-                    };
-
-                    let message = CreateLinkResponse {
-                        object: Some(cloned_object.to_proto_object()),
-                        upload_link: link,
-                    };
-
-                    return Ok(Response::new(message));
-                }
-            }
-        }
-
-        Err(tonic::Status::not_found(format!(
-            "Could not find {}",
-            download_object.id.clone()
-        )))
+        Ok(tonic::Response::new(services::CreateLinkResponse {
+            upload_link: link,
+            object: Some(object.to_proto_object()),
+        }))
     }
 
     async fn start_multipart_upload(
@@ -156,60 +94,16 @@ impl<T: Database> ObjectLoad for LoadServer<T> {
             .authorize(
                 request.metadata(),
                 Resource::Object,
-                Right::Read,
+                Right::Write,
                 download_object.id.clone(),
             )
             .await?;
 
-        let object = match self
-            .mongo_client
-            .find_object(download_object.id.clone())
-            .await
-        {
-            Ok(value) => value,
-            Err(e) => {
-                log::error!("{:?}", e);
-                return Err(tonic::Status::internal("could not load dataset object"));
-            }
-        };
-
-        let upload_id = self
-            .object_handler
-            .init_multipart_upload(object.clone())
+        let object = self
+            .wrapper
+            .load_handler
+            .init_multipart_upload(download_object.id.as_str())
             .await?;
-
-        let query = doc! {
-            "objects.id": object.id.clone()
-        };
-
-        let update = doc! {
-            "objects.$": upload_id
-        };
-
-        let updated_fields_count = match self
-            .mongo_client
-            .update_field::<ObjectGroup>(query, update)
-            .await
-        {
-            Ok(value) => value,
-            Err(e) => {
-                log::error!("{:?}", e);
-                return Err(tonic::Status::internal("could not init dataset load"));
-            }
-        };
-
-        if updated_fields_count != 1 {
-            log::error!("wrong number of updated fields found on upload_id update after multipart upload init");
-            return Err(tonic::Status::internal("could not init dataset load"));
-        }
-
-        let object = match self.mongo_client.find_object(request.into_inner().id).await {
-            Ok(value) => value,
-            Err(e) => {
-                log::error!("{:?}", e);
-                return Err(tonic::Status::internal("could not init dataset load"));
-            }
-        };
 
         return Ok(Response::new(object.to_proto_object()));
     }
@@ -228,40 +122,23 @@ impl<T: Database> ObjectLoad for LoadServer<T> {
             )
             .await?;
 
-        let object = match self
-            .mongo_client
-            .find_object(upload_request.object_id.clone())
-            .await
-        {
-            Ok(value) => value,
-            Err(e) => {
-                log::error!("{:?}", e);
-                return Err(tonic::Status::internal("could not generate load link"));
-            }
-        };
-
-        let upload_url = match self
-            .object_handler
-            .upload_multipart_part_link(
-                object.location.clone(),
-                object.upload_id.clone(),
+        let object = self
+            .wrapper
+            .read_handler
+            .find_object(upload_request.object_id.as_str())
+            .await?;
+        let part_link = self
+            .wrapper
+            .load_handler
+            .create_multipart_upload_link(
+                upload_request.object_id.as_str(),
                 upload_request.upload_part,
             )
-            .await
-        {
-            Ok(value) => value,
-            Err(e) => {
-                log::error!("{:?}", e);
-                return Err(tonic::Status::internal("could not generate load link"));
-            }
-        };
-
-        let upload_link_response = CreateLinkResponse {
+            .await?;
+        return Ok(Response::new(CreateLinkResponse {
             object: Some(object.to_proto_object()),
-            upload_link: upload_url,
-        };
-
-        return Ok(Response::new(upload_link_response));
+            upload_link: part_link,
+        }));
     }
 
     async fn complete_multipart_upload(
@@ -278,20 +155,9 @@ impl<T: Database> ObjectLoad for LoadServer<T> {
             )
             .await?;
 
-        let object = match self
-            .mongo_client
-            .find_object(upload_request.object_id.clone())
-            .await
-        {
-            Ok(value) => value,
-            Err(e) => {
-                log::error!("{:?}", e);
-                return Err(tonic::Status::internal("could not generate load link"));
-            }
-        };
-
-        self.object_handler
-            .finish_multipart_upload(&object.location, &upload_request.parts, object.upload_id)
+        self.wrapper
+            .load_handler
+            .finish_multipart_upload(upload_request.object_id.as_str(), &upload_request.parts)
             .await?;
 
         return Ok(Response::new(Empty {}));

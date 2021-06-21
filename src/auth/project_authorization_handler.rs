@@ -4,15 +4,18 @@ use mongodb::bson::doc;
 use std::collections::HashSet;
 use tonic::metadata::MetadataMap;
 
-use crate::{database::database::Database, models::{
-    apitoken::APIToken,
-    common_models::DatabaseModel,
-    common_models::Right,
-    dataset_model::DatasetEntry,
-    dataset_object_group::{ObjectGroup, ObjectGroupRevision},
-    dataset_version::DatasetVersion,
-    project_model::ProjectEntry,
-}};
+use crate::{
+    database::database::Database,
+    models::{
+        apitoken::APIToken,
+        common_models::DatabaseModel,
+        common_models::Right,
+        dataset_model::DatasetEntry,
+        dataset_object_group::{ObjectGroup, ObjectGroupRevision},
+        dataset_version::DatasetVersion,
+        project_model::ProjectEntry,
+    },
+};
 
 use super::{authenticator::AuthHandler, oauth2_handler};
 use async_trait::async_trait;
@@ -56,16 +59,14 @@ impl<T: Database> ProjectAuthzHandler<T> {
             "id": &id,
         };
 
-        let project_option: Option<ProjectEntry> =
-            match self.database_handler.find_one_by_key(query).await {
-                Ok(value) => value,
-                Err(_) => {
-                    return Err(tonic::Status::internal(
-                        "could not authorize requested action",
-                    ));
-                }
-            };
-        let project = option_to_error(project_option, &project_id)?;
+        let project: ProjectEntry = match self.database_handler.find_one_by_key(query).await {
+            Ok(value) => value,
+            Err(_) => {
+                return Err(tonic::Status::internal(
+                    "could not authorize requested action",
+                ));
+            }
+        };
 
         let user_id = self.user_id(metadata).await?;
 
@@ -118,10 +119,7 @@ impl<T: Database> ProjectAuthzHandler<T> {
             "id": &id
         };
 
-        let dataset_option: Option<DatasetEntry> =
-            self.database_handler.find_one_by_key(query).await?;
-
-        let dataset = option_to_error(dataset_option, &id)?;
+        let dataset: DatasetEntry = self.database_handler.find_one_by_key(query).await?;
 
         return Ok(dataset.project_id);
     }
@@ -131,10 +129,7 @@ impl<T: Database> ProjectAuthzHandler<T> {
             "id": &id,
         };
 
-        let dataset_groups_option: Option<ObjectGroup> =
-            self.database_handler.find_one_by_key(query).await?;
-
-        let dataset_group = option_to_error(dataset_groups_option, &id)?;
+        let dataset_group: ObjectGroup = self.database_handler.find_one_by_key(query).await?;
 
         return self.project_id_of_dataset(dataset_group.id.clone()).await;
     }
@@ -144,10 +139,8 @@ impl<T: Database> ProjectAuthzHandler<T> {
             "id": &id,
         };
 
-        let dataset_group_option: Option<ObjectGroupRevision> =
+        let dataset_group: ObjectGroupRevision =
             self.database_handler.find_one_by_key(query).await?;
-
-        let dataset_group = option_to_error(dataset_group_option, &id)?;
 
         return self.project_id_of_dataset(dataset_group.id.clone()).await;
     }
@@ -157,10 +150,7 @@ impl<T: Database> ProjectAuthzHandler<T> {
             "id": &id,
         };
 
-        let dataset_version_option: Option<DatasetVersion> =
-            self.database_handler.find_one_by_key(query).await?;
-
-        let dataset_version = option_to_error(dataset_version_option, &id)?;
+        let dataset_version: DatasetVersion = self.database_handler.find_one_by_key(query).await?;
 
         return self
             .project_id_of_dataset(dataset_version.dataset_id.clone())
@@ -175,13 +165,11 @@ impl<T: Database> ProjectAuthzHandler<T> {
             "id": &id,
         };
 
-        let dataset_groups_version_option: Option<ObjectGroupRevision> =
+        let object_groups_version: ObjectGroupRevision =
             self.database_handler.find_one_by_key(query).await?;
 
-        let object_group_version = option_to_error(dataset_groups_version_option, &id)?;
-
         let project_id = self
-            .project_id_of_dataset(object_group_version.datasete_id)
+            .project_id_of_dataset(object_groups_version.datasete_id)
             .await?;
         Ok(project_id)
     }
@@ -233,12 +221,12 @@ impl<T: Database> ProjectAuthzHandler<T> {
         let db_token = match self
             .database_handler
             .find_one_by_key::<APIToken>(query)
-            .await?
+            .await
         {
-            Some(value) => value,
-            None => {
+            Ok(value) => value,
+            Err(e) => {
                 return Err(tonic::Status::unauthenticated(
-                    "could not authenticate user from api token",
+                    "could not authenticate from api_token",
                 ))
             }
         };
@@ -340,12 +328,12 @@ impl<T: Database> AuthHandler for ProjectAuthzHandler<T> {
         let db_token = match self
             .database_handler
             .find_one_by_key::<APIToken>(query)
-            .await?
+            .await
         {
-            Some(value) => value,
-            None => {
+            Ok(value) => value,
+            Err(e) => {
                 return Err(tonic::Status::unauthenticated(
-                    "could not authenticate user from api token",
+                    "could not authenticate from api_token",
                 ))
             }
         };

@@ -1,7 +1,7 @@
 Database:
   Mongo:
     Use: true
-    Host: mongo
+    Host: localhost
     Port: 27017
     Username: root
     Database: "test-database"
@@ -9,7 +9,7 @@ Server:
   Host: "127.0.0.1"
   Port: 50051
 Storage:
-  Endpoint: "http://minio:9000"
+  Endpoint: "http://localhost:9000"
   Bucket: "test-bucket"
 Authentication:
   Type: debug

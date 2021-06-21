@@ -2,7 +2,6 @@
 mod server_test {
     use std::sync::Arc;
 
-    use log::debug;
     use scienceobjectsdb_rust_api::sciobjectsdbapi::services::dataset_objects_service_server::DatasetObjectsService;
     use scienceobjectsdb_rust_api::sciobjectsdbapi::services::dataset_service_server::DatasetService;
     use scienceobjectsdb_rust_api::sciobjectsdbapi::services::object_load_server::ObjectLoad;
@@ -13,9 +12,8 @@ mod server_test {
 
     use tonic::Request;
 
+    use crate::handler::common::HandlerWrapper;
     use crate::test_util::init::test_init;
-
-    use crate::SETTINGS;
 
     use crate::database::mongo_connector::MongoHandler;
     use crate::objectstorage::s3_objectstorage::S3Handler;
@@ -41,25 +39,29 @@ mod server_test {
         let object_storage_handler = Arc::new(S3Handler::new());
         let authz_handler = Arc::new(TestAuthenticator {});
 
+        let handler_wrapper = Arc::new(
+            HandlerWrapper::new(mongo_handler.clone(), object_storage_handler.clone())
+                .await
+                .unwrap(),
+        );
+
         let project_endpoints = ProjectServer {
-            mongo_client: mongo_handler.clone(),
+            handler: handler_wrapper.clone(),
             auth_handler: authz_handler.clone(),
         };
 
         let dataset_endpoints = DatasetsServer {
-            database_client: mongo_handler.clone(),
+            handler_wrapper: handler_wrapper.clone(),
             auth_handler: authz_handler.clone(),
         };
 
         let objects_endpoints = ObjectServer {
-            database_client: mongo_handler.clone(),
-            object_handler: object_storage_handler.clone(),
+            handler_wrapper: handler_wrapper.clone(),
             auth_handler: authz_handler.clone(),
         };
 
         let load_endpoints = LoadServer {
-            mongo_client: mongo_handler.clone(),
-            object_handler: object_storage_handler.clone(),
+            wrapper: handler_wrapper.clone(),
             auth_handler: authz_handler.clone(),
         };
 
@@ -328,7 +330,10 @@ mod server_test {
         let data_string = String::from_utf8(data.to_vec()).unwrap();
 
         if data_string != testdata {
-            panic!("downloaded data does not match uploaded data. expected: {} found: {}", data_string, testdata)
+            panic!(
+                "downloaded data does not match uploaded data. expected: {} found: {}",
+                data_string, testdata
+            )
         }
     }
 
@@ -342,7 +347,5 @@ mod server_test {
         let dataset_id = dataset_test(project_id, &endpoints).await;
         let object_group_id = object_group_test(dataset_id.clone(), &endpoints).await;
         test_revisions(&endpoints, object_group_id).await;
-
-
     }
 }

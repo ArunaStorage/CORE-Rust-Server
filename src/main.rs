@@ -16,10 +16,11 @@ extern crate uuid;
 
 mod auth;
 mod database;
+mod handler;
+mod models;
 mod objectstorage;
 mod server;
 mod test_util;
-mod models;
 
 use config::{Config, File};
 use std::sync::RwLock;

@@ -33,6 +33,10 @@ impl DatabaseModel<'_> for DatasetVersion {
     fn get_model_name() -> Result<String, tonic::Status> {
         Ok("DatasetVersion".to_string())
     }
+
+    fn get_parent_field_name() -> Result<String, tonic::Status> {
+        Ok("dataset_id".to_string())
+    }
 }
 
 impl DatasetVersion {
@@ -58,7 +62,7 @@ impl DatasetVersion {
         return Ok(dataset_version);
     }
 
-    pub fn to_proto(&self) -> Result<models::DatasetVersion, tonic::Status> {
+    pub fn to_proto(&self) -> models::DatasetVersion {
         let system_time: SystemTime = self.created.into();
         let timestamp = Timestamp::from(system_time);
 
@@ -75,6 +79,6 @@ impl DatasetVersion {
             created: Some(timestamp),
         };
 
-        return Ok(proto_version);
+        return proto_version;
     }
 }

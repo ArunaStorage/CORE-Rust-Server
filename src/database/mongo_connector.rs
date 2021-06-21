@@ -20,7 +20,14 @@ use mongodb::{bson::doc, options::FindOneOptions};
 
 use super::database::Database;
 
-use crate::{SETTINGS, models::{common_models::{DatabaseModel, Right, Status, User}, dataset_object_group::{DatasetObject, ObjectGroup, ObjectGroupRevision}, project_model::ProjectEntry}};
+use crate::{
+    models::{
+        common_models::{DatabaseModel, Right, Status, User},
+        dataset_object_group::{DatasetObject, ObjectGroupRevision},
+        project_model::ProjectEntry,
+    },
+    SETTINGS,
+};
 
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services;
 
@@ -32,12 +39,12 @@ pub struct MongoHandler {
 }
 
 impl MongoHandler {
-    pub async fn new() -> ResultWrapper<Self> {
+    pub async fn new() -> Result<Self, tonic::Status> {
         let host = SETTINGS
             .read()
             .unwrap()
             .get_str("Database.Mongo.Host")
-            .unwrap_or("127.0.0.1".to_string());
+            .unwrap_or("localhost".to_string());
         let username = SETTINGS
             .read()
             .unwrap()
@@ -63,7 +70,10 @@ impl MongoHandler {
 
         let port_u16 = match u16::try_from(port) {
             Ok(value) => value,
-            Err(e) => return Err(Box::new(e)),
+            Err(e) => {
+                error!("{:?}", e);
+                std::process::exit(2);
+            }
         };
 
         let host = ServerAddress::Tcp {
@@ -82,7 +92,13 @@ impl MongoHandler {
             .hosts(vec![host])
             .build();
 
-        let client = Client::with_options(client_options)?;
+        let client = match Client::with_options(client_options) {
+            Ok(value) => value,
+            Err(e) => {
+                error!("{:?}", e);
+                std::process::exit(1)
+            }
+        };
 
         Ok(MongoHandler {
             database_name: database_name,
@@ -284,19 +300,20 @@ impl Database for MongoHandler {
         return Ok(());
     }
 
-    async fn find_object(&self, id: String) -> Result<DatasetObject, tonic::Status> {
+    async fn find_object(&self, id: &str) -> Result<DatasetObject, tonic::Status> {
         let filter = doc! {
             "objects.id": id
         };
 
         let projection = doc! {
-            "objects.id": 1,
+            "objects.$": 1,
+            "_id": 0,
         };
 
         let options = FindOneOptions::builder().projection(projection).build();
 
         let csr = match self
-            .collection::<ObjectGroup>()
+            .collection::<ObjectGroupRevision>()
             .find_one(filter, options)
             .await
         {
@@ -309,18 +326,42 @@ impl Database for MongoHandler {
             }
         };
 
-        let object = match csr {
-            Some(value) => ObjectGroupRevision::new_from_document(value),
-            None => {
-                let e = Err(tonic::Status::internal(format!(
-                    "error when parsing documents"
-                )));
+        let document = csr.ok_or(tonic::Status::internal(
+            "could not find requested dataset object",
+        ))?;
+        let objects_list = match document.get_array("objects") {
+            Ok(value) => value.to_owned(),
+            Err(e) => {
                 error!("{:?}", e);
-                return e;
+                return Err(tonic::Status::internal(
+                    "could not read requested dataset object",
+                ));
             }
-        }?;
+        };
 
-        return Ok(object.objects[0].clone());
+        if objects_list.len() != 1 {
+            error!(
+                "wrong number of objects found in objects list: found {} objects for object_id {}",
+                objects_list.len(),
+                id
+            );
+            return Err(tonic::Status::internal(
+                "could not read requested dataset object",
+            ));
+        }
+
+        let bson_object = &objects_list[0];
+        let object: DatasetObject = match bson::from_bson(bson_object.to_owned()) {
+            Ok(value) => value,
+            Err(e) => {
+                error!("{:?}", e);
+                return Err(tonic::Status::internal(
+                    "could not read requested dataset object",
+                ));
+            }
+        };
+
+        return Ok(object);
     }
 
     async fn update_field<'de, T: DatabaseModel<'de>>(
@@ -342,7 +383,7 @@ impl Database for MongoHandler {
     async fn find_one_by_key<'de, T: DatabaseModel<'de>>(
         &self,
         query: Document,
-    ) -> Result<Option<T>, tonic::Status> {
+    ) -> Result<T, tonic::Status> {
         let filter_options = FindOneOptions::default();
 
         let csr = match self.collection::<T>().find_one(query, filter_options).await {
@@ -357,10 +398,15 @@ impl Database for MongoHandler {
 
         let entry = match csr {
             Some(value) => T::new_from_document(value)?,
-            None => return Ok(None),
+            None => {
+                return Err(tonic::Status::not_found(format!(
+                    "could not find requested document. type: {}",
+                    T::get_model_name()?
+                )))
+            }
         };
 
-        Ok(Some(entry))
+        Ok(entry)
     }
 
     async fn update_on_field<'de, T: DatabaseModel<'de>>(

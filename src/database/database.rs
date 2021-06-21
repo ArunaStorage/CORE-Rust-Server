@@ -5,8 +5,10 @@ use serde::{Deserialize, Serialize};
 
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services::AddUserToProjectRequest;
 
-use crate::models::{common_models::{DatabaseModel, Status}, dataset_object_group::DatasetObject};
-
+use crate::models::{
+    common_models::{DatabaseModel, Status},
+    dataset_object_group::DatasetObject,
+};
 
 #[allow(dead_code)]
 pub enum ObjectGroupIDType {
@@ -25,10 +27,10 @@ pub trait Database: Send + Sync {
     async fn find_one_by_key<'de, T: DatabaseModel<'de>>(
         &self,
         query: Document,
-    ) -> Result<Option<T>, tonic::Status>;
+    ) -> Result<T, tonic::Status>;
     async fn store<'de, T: DatabaseModel<'de>>(&self, value: T) -> Result<T, tonic::Status>;
     async fn add_user(&self, request: &AddUserToProjectRequest) -> Result<(), tonic::Status>;
-    async fn find_object(&self, id: String) -> Result<DatasetObject, tonic::Status>;
+    async fn find_object(&self, id: &str) -> Result<DatasetObject, tonic::Status>;
     async fn update_field<'de, T: DatabaseModel<'de>>(
         &self,
         query: Document,

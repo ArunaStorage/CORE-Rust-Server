@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::SystemTime};
+use std::time::SystemTime;
 
 use chrono::DateTime;
 use chrono::Utc;
@@ -6,15 +6,10 @@ use prost_types::Timestamp;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::{models, services};
 use serde::{Deserialize, Serialize};
 
-use crate::database::database::Database;
-
-use super::{
-    common_models::{
-        to_labels, to_metadata, to_proto_labels, to_proto_metadata, to_proto_status, DatabaseModel,
-        Label, Location, Metadata, Origin, Status, Version,
-    },
+use super::common_models::{
+    to_labels, to_metadata, to_proto_labels, to_proto_metadata, to_proto_status, DatabaseModel,
+    Label, Location, Metadata, Origin, Status, Version,
 };
-
 
 use super::common_models;
 
@@ -38,12 +33,15 @@ impl DatabaseModel<'_> for ObjectGroup {
     fn get_model_name() -> Result<String, tonic::Status> {
         Ok("ObjectGroup".to_string())
     }
+
+    fn get_parent_field_name() -> Result<String, tonic::Status> {
+        Ok("dataset_id".to_string())
+    }
 }
 
 impl ObjectGroup {
-    pub fn new_from_proto_create<T: Database>(
+    pub fn new_from_proto_create(
         request: &services::CreateObjectGroupRequest,
-        _handler: Arc<T>,
     ) -> Result<Self, tonic::Status> {
         let uuid = uuid::Uuid::new_v4();
 
@@ -61,7 +59,7 @@ impl ObjectGroup {
         return Ok(object_group);
     }
 
-    pub fn to_proto(&self) -> Result<models::ObjectGroup, tonic::Status> {
+    pub fn to_proto(&self) -> models::ObjectGroup {
         let proto_object = models::ObjectGroup {
             id: self.id.clone(),
             dataset_id: self.dataset_id.clone(),
@@ -73,7 +71,7 @@ impl ObjectGroup {
             current_revision: self.revision_counter,
         };
 
-        return Ok(proto_object);
+        return proto_object;
     }
 }
 
@@ -95,7 +93,11 @@ pub struct ObjectGroupRevision {
 
 impl DatabaseModel<'_> for ObjectGroupRevision {
     fn get_model_name() -> Result<String, tonic::Status> {
-        Ok("ObjectGroupVersion".to_string())
+        Ok("ObjectGroupRevision".to_string())
+    }
+
+    fn get_parent_field_name() -> Result<String, tonic::Status> {
+        Ok("object_group_id".to_string())
     }
 }
 
@@ -179,6 +181,12 @@ pub struct DatasetObject {
 impl DatabaseModel<'_> for DatasetObject {
     fn get_model_name() -> Result<String, tonic::Status> {
         Ok("Object".to_string())
+    }
+
+    fn get_parent_field_name() -> Result<String, tonic::Status> {
+        Err(tonic::Status::internal(
+            "datasetobject does not have a parent field",
+        ))
     }
 }
 
