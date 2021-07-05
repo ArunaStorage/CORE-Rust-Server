@@ -1,9 +1,6 @@
 use std::sync::Arc;
 
-use crate::{
-    database::{database::Database},
-    objectstorage::{objectstorage::StorageHandler},
-};
+use crate::{database::database::Database, objectstorage::objectstorage::StorageHandler};
 
 use super::{
     create::CreateHandler, delete::DeleteHandler, load::LoadHandler, read::ReadHandler,

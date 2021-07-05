@@ -227,7 +227,7 @@ impl<T: Database> ProjectAuthzHandler<T> {
                 error!("{:?}", e);
                 return Err(tonic::Status::unauthenticated(
                     "could not authenticate from api_token",
-                ))
+                ));
             }
         };
 
@@ -276,9 +276,7 @@ impl<T: Database> AuthHandler for ProjectAuthzHandler<T> {
         let requested_rights = vec![right.clone()];
 
         if metadata.contains_key(USER_TOKEN_ENTRY_KEY) {
-            return self
-                .authorize_from_user_token(id, metadata, right)
-                .await;
+            return self.authorize_from_user_token(id, metadata, right).await;
         } else if metadata.contains_key(API_TOKEN_ENTRY_KEY) {
             return self
                 .authorize_from_api_token(metadata, project_id, requested_rights)
@@ -335,7 +333,7 @@ impl<T: Database> AuthHandler for ProjectAuthzHandler<T> {
                 log::error!("{:?}", e);
                 return Err(tonic::Status::unauthenticated(
                     "could not authenticate from api_token",
-                ))
+                ));
             }
         };
 

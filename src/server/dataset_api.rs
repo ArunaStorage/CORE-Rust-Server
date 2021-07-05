@@ -148,9 +148,21 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
 
     async fn delete_dataset(
         &self,
-        _request: tonic::Request<models::Id>,
+        request: tonic::Request<models::Id>,
     ) -> Result<Response<models::Empty>, tonic::Status> {
-        unimplemented!()
+        let inner_request = request.get_ref();
+        self.auth_handler
+            .authorize(
+                request.metadata(),
+                Resource::Dataset,
+                Right::Write,
+                inner_request.id.clone(),
+            )
+            .await?;
+
+        self.handler_wrapper.delete_handler.delete_dataset(inner_request.id.clone()).await?;
+
+        return Ok(Response::new(models::Empty {}));
     }
 
     async fn release_dataset_version(
@@ -235,8 +247,20 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
 
     async fn delete_dataset_version(
         &self,
-        _request: tonic::Request<models::Id>,
+        request: tonic::Request<models::Id>,
     ) -> Result<Response<models::Empty>, tonic::Status> {
-        unimplemented!()
+        let inner_request = request.get_ref();
+        self.auth_handler
+            .authorize(
+                request.metadata(),
+                Resource::DatasetVersion,
+                Right::Write,
+                inner_request.id.clone(),
+            )
+            .await?;
+
+        self.handler_wrapper.delete_handler.delete_dataset_version(inner_request.id.clone()).await?;
+
+        return Ok(Response::new(models::Empty {}));
     }
 }

@@ -36,6 +36,11 @@ pub trait Database: Send + Sync {
         query: Document,
         update: Document,
     ) -> Result<u64, tonic::Status>;
+    async fn update_fields<'de, T: DatabaseModel<'de>>(
+        &self,
+        query: Document,
+        update: Document,
+    ) -> Result<u64, tonic::Status>;
     async fn update_on_field<'de, T: DatabaseModel<'de>>(
         &self,
         query: Document,

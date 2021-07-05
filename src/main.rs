@@ -1,18 +1,6 @@
 #[macro_use]
 extern crate lazy_static;
 
-extern crate async_trait;
-extern crate chrono;
-extern crate clap;
-extern crate config;
-extern crate futures;
-extern crate prost;
-extern crate prost_types;
-extern crate rand;
-extern crate rusoto_core;
-extern crate rusoto_s3;
-extern crate tokio;
-extern crate uuid;
 
 mod auth;
 mod database;

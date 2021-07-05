@@ -5,18 +5,15 @@ use scienceobjectsdb_rust_api::sciobjectsdbapi::services::dataset_objects_servic
 use scienceobjectsdb_rust_api::sciobjectsdbapi::{models::Empty, services};
 use tonic::Response;
 
-
 use crate::database::database::Database;
 use crate::handler::common::HandlerWrapper;
+use crate::models::dataset_object_group::ObjectGroupRevision;
 use crate::{
     auth::authenticator::AuthHandler,
     models::{
         common_models::{Resource, Right},
         dataset_object_group::ObjectGroup,
     },
-};
-use crate::{
-    models::dataset_object_group::ObjectGroupRevision,
 };
 
 use crate::server::util;
@@ -235,7 +232,9 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
             )
             .await?;
 
-        unimplemented!()
+            self.handler_wrapper.delete_handler.delete_object_group(inner_request.id.clone()).await?;
+
+        return Ok(Response::new(models::Empty {}));
     }
 
     async fn delete_object_group_revision(
@@ -251,6 +250,9 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
                 inner_request.id.clone(),
             )
             .await?;
-        unimplemented!()
+
+        self.handler_wrapper.delete_handler.delete_object_revision(inner_request.id.clone()).await?;
+
+        return Ok(Response::new(models::Empty {}));
     }
 }
