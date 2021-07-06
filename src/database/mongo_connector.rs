@@ -507,7 +507,7 @@ impl Database for MongoHandler {
             "id": id
         };
 
-        let value = match mongodb::bson::to_document(&status) {
+        let value = match mongodb::bson::to_bson(&status) {
             Ok(value) => value,
             Err(e) => {
                 error!("{:?}", e);
@@ -518,7 +518,9 @@ impl Database for MongoHandler {
         };
 
         let update = doc! {
-            "status":  value
+            "$set": {
+                "status":  value
+            }
         };
 
         match self
