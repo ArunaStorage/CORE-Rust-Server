@@ -160,7 +160,10 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
             )
             .await?;
 
-        self.handler_wrapper.delete_handler.delete_dataset(inner_request.id.clone()).await?;
+        self.handler_wrapper
+            .delete_handler
+            .delete_dataset(inner_request.id.clone())
+            .await?;
 
         return Ok(Response::new(models::Empty {}));
     }
@@ -259,7 +262,10 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
             )
             .await?;
 
-        self.handler_wrapper.delete_handler.delete_dataset_version(inner_request.id.clone()).await?;
+        self.handler_wrapper
+            .delete_handler
+            .delete_dataset_version(inner_request.id.clone())
+            .await?;
 
         return Ok(Response::new(models::Empty {}));
     }

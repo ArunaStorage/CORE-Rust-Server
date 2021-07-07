@@ -1,7 +1,6 @@
 #[macro_use]
 extern crate lazy_static;
 
-
 mod auth;
 mod database;
 mod handler;

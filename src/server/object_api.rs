@@ -232,7 +232,10 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
             )
             .await?;
 
-            self.handler_wrapper.delete_handler.delete_object_group(inner_request.id.clone()).await?;
+        self.handler_wrapper
+            .delete_handler
+            .delete_object_group(inner_request.id.clone())
+            .await?;
 
         return Ok(Response::new(models::Empty {}));
     }
@@ -251,7 +254,10 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
             )
             .await?;
 
-        self.handler_wrapper.delete_handler.delete_object_revision(inner_request.id.clone()).await?;
+        self.handler_wrapper
+            .delete_handler
+            .delete_object_revision(inner_request.id.clone())
+            .await?;
 
         return Ok(Response::new(models::Empty {}));
     }

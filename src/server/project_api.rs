@@ -124,7 +124,6 @@ impl<T: Database> ProjectApi for ProjectServer<T> {
     ) -> Result<tonic::Response<models::Empty>, tonic::Status> {
         let _inner_request = request.get_ref();
 
-
         return Err(tonic::Status::unimplemented("not implemented"));
     }
 

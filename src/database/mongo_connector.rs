@@ -43,10 +43,10 @@ impl MongoHandler {
     /// Behaves like new_with_db_name but the database name is also read from the configuration file
     pub async fn new() -> Result<Self, tonic::Status> {
         let database_name = SETTINGS
-        .read()
-        .unwrap()
-        .get_str("Database.Mongo.Database")
-        .unwrap_or("objectsdb".to_string());
+            .read()
+            .unwrap()
+            .get_str("Database.Mongo.Database")
+            .unwrap_or("objectsdb".to_string());
 
         return MongoHandler::new_with_db_name(database_name).await;
     }

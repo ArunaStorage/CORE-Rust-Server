@@ -38,6 +38,14 @@ where
             value?;
         }
 
+        let query = doc! {
+            "id": id
+        };
+
+        self.database_client
+            .delete::<ObjectGroupRevision>(query)
+            .await?;
+
         return Ok(());
     }
 
@@ -62,9 +70,7 @@ where
             "id": id
         };
 
-        self.database_client
-            .delete::<ObjectGroupRevision>(query)
-            .await?;
+        self.database_client.delete::<ObjectGroup>(query).await?;
 
         return Ok(());
     }

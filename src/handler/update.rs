@@ -1,4 +1,4 @@
-use bson::{doc, to_document};
+use bson::{doc, to_bson, to_document};
 use log::error;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services::AddUserToProjectRequest;
 
@@ -24,7 +24,7 @@ where
             "id": id
         };
 
-        let enum_value = match to_document(status) {
+        let enum_value = match to_bson(status) {
             Ok(value) => value,
             Err(e) => {
                 error!("{:?}", e);
