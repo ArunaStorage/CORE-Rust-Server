@@ -8,6 +8,10 @@ use crate::{
 
 use super::common::CommonHandler;
 
+/// Handles data load operations
+/// The data is stored in an object storage and access is negotiated via presigned URLs
+/// Uploads to a single link are limited in size by the underlaying object storage. In general it is recommended to
+/// use the multipart upload for object larger than 15MB
 pub type LoadHandler<T> = CommonHandler<T>;
 
 impl<T> LoadHandler<T>
@@ -34,6 +38,11 @@ where
         return Ok(link);
     }
 
+
+    /// Initiates a multipart upload. It returns the object which is associated with the uploaded object
+    /// If a multipart upload is initiated the upload_id field is set
+    /// This upload_id can be used to generate individual upload links with the create_multipart_upload_link
+    /// The underlaying object storage implementation usually sets limits for the minimum required part size
     pub async fn init_multipart_upload(&self, id: &str) -> Result<DatasetObject, tonic::Status> {
         let object = self.database_client.find_object(id).await?;
         let upload_id = self.object_handler.init_multipart_upload(&object).await?;
@@ -54,6 +63,7 @@ where
         Ok(object.clone())
     }
 
+    /// Creates a multipart upload link
     pub async fn create_multipart_upload_link(
         &self,
         id: &str,
@@ -68,6 +78,7 @@ where
         Ok(upload_url)
     }
 
+    /// Finishes a multipart upload
     pub async fn finish_multipart_upload(
         &self,
         id: &str,
@@ -81,6 +92,9 @@ where
         Ok(())
     }
 
+    /// Marks an object group as available
+    /// This is required to allow the user to indicate a finished upload
+    /// The system itself is not able to determine if all objects of an object group are already uploaded
     pub async fn finish_object_group_upload(&self, id: &str) -> Result<(), tonic::Status> {
         self.update_status::<ObjectGroup>(id, &crate::models::common_models::Status::Available)
             .await?;
