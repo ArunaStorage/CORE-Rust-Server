@@ -7,6 +7,8 @@ use super::{
     update::UpdateHandler,
 };
 
+/// Handles the standard actions required by the API
+/// This is a base struct that is aliased by the specific handler implementations for easier access
 pub struct CommonHandler<T: Database + 'static> {
     pub database_client: Arc<T>,
     pub object_handler: Arc<dyn StorageHandler>,
@@ -23,6 +25,7 @@ impl<T: Database + 'static> CommonHandler<T> {
     }
 }
 
+/// Wraps the specific handler into a single sturct
 pub struct HandlerWrapper<T: Database + 'static> {
     pub create_handler: CreateHandler<T>,
     pub read_handler: ReadHandler<T>,

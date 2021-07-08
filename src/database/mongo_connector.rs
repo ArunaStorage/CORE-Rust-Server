@@ -116,6 +116,8 @@ impl MongoHandler {
         })
     }
 
+    /// Returns an entry based on the internal ID of an inserted object
+    /// This can be used to get the model of an inserted object since MongoDB will only return the ObjectID of the inserted object
     async fn get_model_entry_internal_id<'de, T: DatabaseModel<'de>>(
         &self,
         id: Bson,
@@ -158,6 +160,8 @@ impl MongoHandler {
         return Ok(Some(model));
     }
 
+
+    ///Transforms the given Document into the associated internal model representation
     #[allow(dead_code)]
     pub fn to_model<'de, T: DatabaseModel<'de>>(
         &self,
@@ -181,6 +185,8 @@ impl MongoHandler {
         return Ok(Some(model));
     }
 
+
+    /// Returns the MongoDB collection that handles a specific model type
     fn collection<'de, T, V>(&self) -> mongodb::Collection<V>
     where
         T: DatabaseModel<'de>,

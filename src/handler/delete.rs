@@ -9,6 +9,7 @@ use crate::{database::database::Database, models::dataset_object_group::ObjectGr
 
 use super::common::CommonHandler;
 
+/// Handles delete associated tasks for the individual models
 pub type DeleteHandler<T> = CommonHandler<T>;
 
 impl<T> DeleteHandler<T>

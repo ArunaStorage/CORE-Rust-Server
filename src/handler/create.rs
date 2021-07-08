@@ -17,6 +17,7 @@ use scienceobjectsdb_rust_api::sciobjectsdbapi::services::{
 
 use super::common::CommonHandler;
 
+/// Handles create associated tasks for the individual models
 pub type CreateHandler<T> = CommonHandler<T>;
 
 impl<T> CreateHandler<T>
@@ -57,6 +58,7 @@ where
             "id": parent_object_group_id
         };
 
+        // If a new revision is created it is necessary to update the revision counter as well.
         let update = doc! {
             "$inc": {
                 "revision_counter": 1
