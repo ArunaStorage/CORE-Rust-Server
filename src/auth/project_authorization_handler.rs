@@ -1,18 +1,20 @@
 use std::{error::Error, fmt, sync::Arc};
 
+use log::error;
 use mongodb::bson::doc;
 use std::collections::HashSet;
 use tonic::metadata::MetadataMap;
 
-use crate::database::{
-    apitoken::APIToken,
-    common_models::DatabaseModel,
-    common_models::Right,
-    database::Database,
-    dataset_model::DatasetEntry,
-    dataset_object_group::{ObjectGroup, ObjectGroupRevision},
-    dataset_version::DatasetVersion,
-    project_model::ProjectEntry,
+use crate::{
+    database::database::Database,
+    models::{
+        apitoken::APIToken,
+        common_models::Right,
+        dataset_model::DatasetEntry,
+        dataset_object_group::{ObjectGroup, ObjectGroupRevision},
+        dataset_version::DatasetVersion,
+        project_model::ProjectEntry,
+    },
 };
 
 use super::{authenticator::AuthHandler, oauth2_handler};
@@ -49,24 +51,21 @@ impl<T: Database> ProjectAuthzHandler<T> {
     async fn authorize_from_user_token(
         &self,
         id: String,
-        project_id: String,
         metadata: &MetadataMap,
-        right: crate::database::common_models::Right,
+        right: crate::models::common_models::Right,
     ) -> Result<(), tonic::Status> {
         let query = doc! {
             "id": &id,
         };
 
-        let project_option: Option<ProjectEntry> =
-            match self.database_handler.find_one_by_key(query).await {
-                Ok(value) => value,
-                Err(_) => {
-                    return Err(tonic::Status::internal(
-                        "could not authorize requested action",
-                    ));
-                }
-            };
-        let project = option_to_error(project_option, &project_id)?;
+        let project: ProjectEntry = match self.database_handler.find_one_by_key(query).await {
+            Ok(value) => value,
+            Err(_) => {
+                return Err(tonic::Status::internal(
+                    "could not authorize requested action",
+                ));
+            }
+        };
 
         let user_id = self.user_id(metadata).await?;
 
@@ -119,10 +118,7 @@ impl<T: Database> ProjectAuthzHandler<T> {
             "id": &id
         };
 
-        let dataset_option: Option<DatasetEntry> =
-            self.database_handler.find_one_by_key(query).await?;
-
-        let dataset = option_to_error(dataset_option, &id)?;
+        let dataset: DatasetEntry = self.database_handler.find_one_by_key(query).await?;
 
         return Ok(dataset.project_id);
     }
@@ -132,10 +128,7 @@ impl<T: Database> ProjectAuthzHandler<T> {
             "id": &id,
         };
 
-        let dataset_groups_option: Option<ObjectGroup> =
-            self.database_handler.find_one_by_key(query).await?;
-
-        let dataset_group = option_to_error(dataset_groups_option, &id)?;
+        let dataset_group: ObjectGroup = self.database_handler.find_one_by_key(query).await?;
 
         return self.project_id_of_dataset(dataset_group.id.clone()).await;
     }
@@ -145,10 +138,8 @@ impl<T: Database> ProjectAuthzHandler<T> {
             "id": &id,
         };
 
-        let dataset_group_option: Option<ObjectGroupRevision> =
+        let dataset_group: ObjectGroupRevision =
             self.database_handler.find_one_by_key(query).await?;
-
-        let dataset_group = option_to_error(dataset_group_option, &id)?;
 
         return self.project_id_of_dataset(dataset_group.id.clone()).await;
     }
@@ -158,10 +149,7 @@ impl<T: Database> ProjectAuthzHandler<T> {
             "id": &id,
         };
 
-        let dataset_version_option: Option<DatasetVersion> =
-            self.database_handler.find_one_by_key(query).await?;
-
-        let dataset_version = option_to_error(dataset_version_option, &id)?;
+        let dataset_version: DatasetVersion = self.database_handler.find_one_by_key(query).await?;
 
         return self
             .project_id_of_dataset(dataset_version.dataset_id.clone())
@@ -176,13 +164,11 @@ impl<T: Database> ProjectAuthzHandler<T> {
             "id": &id,
         };
 
-        let dataset_groups_version_option: Option<ObjectGroupRevision> =
+        let object_groups_version: ObjectGroupRevision =
             self.database_handler.find_one_by_key(query).await?;
 
-        let object_group_version = option_to_error(dataset_groups_version_option, &id)?;
-
         let project_id = self
-            .project_id_of_dataset(object_group_version.datasete_id)
+            .project_id_of_dataset(object_groups_version.datasete_id)
             .await?;
         Ok(project_id)
     }
@@ -223,9 +209,7 @@ impl<T: Database> ProjectAuthzHandler<T> {
         let api_token = match metadata.get(API_TOKEN_ENTRY_KEY) {
             Some(value) => value.to_str().unwrap(),
             None => {
-                return Err(tonic::Status::internal(
-                    "could not read API token",
-                ));
+                return Err(tonic::Status::internal("could not read API token"));
             }
         };
 
@@ -236,13 +220,14 @@ impl<T: Database> ProjectAuthzHandler<T> {
         let db_token = match self
             .database_handler
             .find_one_by_key::<APIToken>(query)
-            .await?
+            .await
         {
-            Some(value) => value,
-            None => {
+            Ok(value) => value,
+            Err(e) => {
+                error!("{:?}", e);
                 return Err(tonic::Status::unauthenticated(
-                    "could not authenticate user from api token",
-                ))
+                    "could not authenticate from api_token",
+                ));
             }
         };
 
@@ -255,25 +240,25 @@ impl<T: Database> AuthHandler for ProjectAuthzHandler<T> {
     async fn authorize(
         &self,
         metadata: &tonic::metadata::MetadataMap,
-        resource: crate::database::common_models::Resource,
-        right: crate::database::common_models::Right,
+        resource: crate::models::common_models::Resource,
+        right: crate::models::common_models::Right,
         id: String,
     ) -> std::result::Result<(), tonic::Status> {
         let project_id_result = match resource {
-            crate::database::common_models::Resource::Project => Ok(id.clone()),
-            crate::database::common_models::Resource::Dataset => {
+            crate::models::common_models::Resource::Project => Ok(id.clone()),
+            crate::models::common_models::Resource::Dataset => {
                 self.project_id_of_dataset(id.to_string().clone()).await
             }
-            crate::database::common_models::Resource::DatasetVersion => {
+            crate::models::common_models::Resource::DatasetVersion => {
                 self.project_id_of_dataset_version(id.clone()).await
             }
-            crate::database::common_models::Resource::ObjectGroup => {
+            crate::models::common_models::Resource::ObjectGroup => {
                 self.project_id_of_object_group(id.clone()).await
             }
-            crate::database::common_models::Resource::Object => {
+            crate::models::common_models::Resource::Object => {
                 self.project_id_of_object(id.clone()).await
             }
-            crate::database::common_models::Resource::ObjectGroupRevision => {
+            crate::models::common_models::Resource::ObjectGroupRevision => {
                 self.project_id_of_object_group_revision(id.clone()).await
             }
         };
@@ -291,9 +276,7 @@ impl<T: Database> AuthHandler for ProjectAuthzHandler<T> {
         let requested_rights = vec![right.clone()];
 
         if metadata.contains_key(USER_TOKEN_ENTRY_KEY) {
-            return self
-                .authorize_from_user_token(id, project_id, metadata, right)
-                .await;
+            return self.authorize_from_user_token(id, metadata, right).await;
         } else if metadata.contains_key(API_TOKEN_ENTRY_KEY) {
             return self
                 .authorize_from_api_token(metadata, project_id, requested_rights)
@@ -310,13 +293,16 @@ impl<T: Database> AuthHandler for ProjectAuthzHandler<T> {
         if metadata.contains_key(USER_TOKEN_ENTRY_KEY) {
             return self.user_id_from_access_token(metadata).await;
         } else if metadata.contains_key(API_TOKEN_ENTRY_KEY) {
-            return self.user_id_from_api_token(metadata).await
+            return self.user_id_from_api_token(metadata).await;
         }
 
         return Err(tonic::Status::unauthenticated(format!("could not find authentication token, please provide a token in metadata either with {} or {}", USER_TOKEN_ENTRY_KEY, API_TOKEN_ENTRY_KEY)));
     }
 
-    async fn project_id_from_api_token(&self, metadata: &MetadataMap) -> std::result::Result<APIToken, tonic::Status> {
+    async fn project_id_from_api_token(
+        &self,
+        metadata: &MetadataMap,
+    ) -> std::result::Result<APIToken, tonic::Status> {
         let token = match metadata.get(API_TOKEN_ENTRY_KEY) {
             Some(meta_token) => match meta_token.to_str() {
                 Ok(token) => token,
@@ -340,17 +326,18 @@ impl<T: Database> AuthHandler for ProjectAuthzHandler<T> {
         let db_token = match self
             .database_handler
             .find_one_by_key::<APIToken>(query)
-            .await?
+            .await
         {
-            Some(value) => value,
-            None => {
+            Ok(value) => value,
+            Err(e) => {
+                log::error!("{:?}", e);
                 return Err(tonic::Status::unauthenticated(
-                    "could not authenticate user from api token",
-                ))
+                    "could not authenticate from api_token",
+                ));
             }
         };
 
-        return Ok(db_token)
+        return Ok(db_token);
     }
 }
 
@@ -377,21 +364,5 @@ impl fmt::Display for InvalidError {
 impl Error for InvalidError {
     fn description(&self) -> &str {
         &self.details
-    }
-}
-
-fn option_to_error<'de, T: DatabaseModel<'de>>(
-    option: Option<T>,
-    id: &str,
-) -> std::result::Result<T, tonic::Status> {
-    match option {
-        Some(value) => return Ok(value),
-        None => {
-            let type_name = T::get_model_name().unwrap();
-            return Err(tonic::Status::internal(format!(
-                "could find {} with id {}",
-                type_name, id
-            )));
-        }
     }
 }

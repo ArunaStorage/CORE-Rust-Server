@@ -1,51 +1,3 @@
-use config::File;
-use core::time;
-use std::{env, path::PathBuf, sync::Once, thread};
-
-use crate::SETTINGS;
-
-#[allow(dead_code)]
-static INIT: Once = Once::new();
-
-#[allow(dead_code)]
-pub fn test_init() {
-    INIT.call_once(|| {
-        env_logger::init();
-
-        match env::var("MONGO_PASSWORD") {
-            Ok(_) => {}
-            Err(_) => env::set_var("MONGO_PASSWORD", "test123"),
-        }
-
-        match env::var("AWS_ACCESS_KEY_ID") {
-            Ok(_) => {}
-            Err(_) => env::set_var("AWS_ACCESS_KEY_ID", "minioadmin"),
-        }
-
-        match env::var("AWS_SECRET_ACCESS_KEY") {
-            Ok(_) => {}
-            Err(_) => env::set_var("AWS_SECRET_ACCESS_KEY", "minioadmin"),
-        }
-
-        let mut testpath = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        testpath.push("resources/test/config.yaml");
-
-        let conf_path = testpath.to_str().unwrap();
-        SETTINGS
-            .write()
-            .unwrap()
-            .merge(File::with_name(conf_path))
-            .unwrap();
-    });
-
-    let mut is_completed = INIT.is_completed();
-    let wait_for_completion_wait = time::Duration::from_millis(500);
-    while !is_completed {
-        thread::sleep(wait_for_completion_wait);
-        is_completed = INIT.is_completed();
-    }
-}
-
 #[cfg(test)]
 mod server_test {
     use std::sync::Arc;
@@ -60,9 +12,8 @@ mod server_test {
 
     use tonic::Request;
 
-    use super::test_init;
-
-    use super::SETTINGS;
+    use crate::handler::common::HandlerWrapper;
+    use crate::test_util::init::test_init;
 
     use crate::database::mongo_connector::MongoHandler;
     use crate::objectstorage::s3_objectstorage::S3Handler;
@@ -84,42 +35,33 @@ mod server_test {
     const TEST_DATA_REV2: &'static str = "testdata-revision-2";
 
     async fn test_endpoint_structs() -> TestEndpointStruct {
-        let s3_endpoint = SETTINGS
-            .read()
-            .unwrap()
-            .get_str("Storage.Endpoint")
-            .unwrap_or("localhost".to_string());
-        let s3_bucket = SETTINGS.read().unwrap().get_str("Storage.Bucket").unwrap();
-
         let mongo_handler = Arc::new(MongoHandler::new().await.unwrap());
-
-        let object_storage_handler = Arc::new(S3Handler::new(
-            s3_endpoint.to_string(),
-            "RegionOne".to_string(),
-            s3_bucket.clone(),
-        ));
-
+        let object_storage_handler = Arc::new(S3Handler::new());
         let authz_handler = Arc::new(TestAuthenticator {});
 
+        let handler_wrapper = Arc::new(
+            HandlerWrapper::new(mongo_handler.clone(), object_storage_handler.clone())
+                .await
+                .unwrap(),
+        );
+
         let project_endpoints = ProjectServer {
-            mongo_client: mongo_handler.clone(),
+            handler: handler_wrapper.clone(),
             auth_handler: authz_handler.clone(),
         };
 
         let dataset_endpoints = DatasetsServer {
-            database_client: mongo_handler.clone(),
+            handler_wrapper: handler_wrapper.clone(),
             auth_handler: authz_handler.clone(),
         };
 
         let objects_endpoints = ObjectServer {
-            database_client: mongo_handler.clone(),
-            object_handler: object_storage_handler.clone(),
+            handler_wrapper: handler_wrapper.clone(),
             auth_handler: authz_handler.clone(),
         };
 
         let load_endpoints = LoadServer {
-            mongo_client: mongo_handler.clone(),
-            object_handler: object_storage_handler.clone(),
+            wrapper: handler_wrapper.clone(),
             auth_handler: authz_handler.clone(),
         };
 
@@ -347,7 +289,7 @@ mod server_test {
         let client = reqwest::Client::new();
         let resp = client
             .put(upload_link.upload_link)
-            .body(TEST_DATA_REV1.clone())
+            .body(testdata.to_string())
             .send()
             .await
             .unwrap();
@@ -388,7 +330,10 @@ mod server_test {
         let data_string = String::from_utf8(data.to_vec()).unwrap();
 
         if data_string != testdata {
-            panic!("downloaded data does not match uploaded rata")
+            panic!(
+                "downloaded data does not match uploaded data. expected: {} found: {}",
+                data_string, testdata
+            )
         }
     }
 
@@ -400,6 +345,7 @@ mod server_test {
 
         let project_id = project_test(&endpoints).await;
         let dataset_id = dataset_test(project_id, &endpoints).await;
-        object_group_test(dataset_id.clone(), &endpoints).await;
+        let object_group_id = object_group_test(dataset_id.clone(), &endpoints).await;
+        test_revisions(&endpoints, object_group_id).await;
     }
 }

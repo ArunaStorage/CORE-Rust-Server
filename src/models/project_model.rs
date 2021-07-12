@@ -8,8 +8,6 @@ use scienceobjectsdb_rust_api::sciobjectsdbapi::{
 
 use super::common_models::*;
 
-type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
-
 #[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq, Eq)]
 pub struct ProjectEntry {
     pub id: String,
@@ -24,13 +22,17 @@ impl DatabaseModel<'_> for ProjectEntry {
     fn get_model_name() -> Result<String, tonic::Status> {
         Ok("project".to_string())
     }
+
+    fn get_parent_field_name() -> Result<String, tonic::Status> {
+        Err(tonic::Status::internal("project does not have a parent"))
+    }
 }
 
 impl ProjectEntry {
     pub fn new_from_proto_create(
-        request: services::CreateProjectRequest,
+        request: &services::CreateProjectRequest,
         user_id: String,
-    ) -> ResultWrapper<Self> {
+    ) -> Result<Self, tonic::Status> {
         let user = User {
             user_id: user_id,
             rights: vec![Right::Write, Right::Read],
@@ -39,8 +41,8 @@ impl ProjectEntry {
         let uuid = uuid::Uuid::new_v4();
         let project = ProjectEntry {
             id: uuid.to_string(),
-            name: request.name,
-            description: request.description,
+            name: request.name.clone(),
+            description: request.description.clone(),
             metadata: to_metadata(&request.metadata.to_vec()),
             users: vec![user],
             labels: to_labels(&request.labels),

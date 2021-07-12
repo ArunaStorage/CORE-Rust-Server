@@ -19,23 +19,23 @@ impl DatabaseModel<'_> for APIToken {
     fn get_model_name() -> Result<String, tonic::Status> {
         Ok("APIToken".to_string())
     }
+
+    fn get_parent_field_name() -> Result<String, tonic::Status> {
+        Ok("parent_id".to_string())
+    }
 }
 
 impl APIToken {
-    pub fn new(
-        user_id: String,
-        rights: Vec<Right>,
-        project_id: String,
-    ) -> Result<Self, tonic::Status> {
+    pub fn new(user_id: &str, rights: Vec<Right>, project_id: &str) -> Result<Self, tonic::Status> {
         let uuid = uuid::Uuid::new_v4();
         let token = generate_api_token();
 
         let dataset_entry = APIToken {
             id: uuid.to_string(),
-            user_id: user_id,
+            user_id: user_id.to_string(),
             rights: rights,
             token: token,
-            project_id: project_id,
+            project_id: project_id.to_string(),
         };
 
         Ok(dataset_entry)

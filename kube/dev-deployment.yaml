@@ -87,6 +87,9 @@ metadata:
     cert-manager.io/cluster-issuer: letsencrypt
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+    nginx.ingress.kubernetes.io/server-snippet: |
+      underscores_in_headers on;
+      ignore_invalid_headers on;
 spec:
   rules:
   - host: api.objectsdb-dev.m1.k8s.computational.bio

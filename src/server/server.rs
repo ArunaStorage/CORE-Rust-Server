@@ -8,6 +8,7 @@ use scienceobjectsdb_rust_api::sciobjectsdbapi::services::{
 };
 use tonic::transport::Server;
 
+use crate::handler::common::HandlerWrapper;
 use crate::objectstorage::s3_objectstorage::S3Handler;
 
 use crate::auth::{
@@ -28,20 +29,9 @@ type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send 
 
 /// Starts the grpc server. The configuration is read from the config file handed over at startup
 pub async fn start_server() -> ResultWrapper<()> {
-    let s3_endpoint = SETTINGS
-        .read()
-        .unwrap()
-        .get_str("Storage.Endpoint")
-        .unwrap_or("localhost".to_string());
-    let s3_bucket = SETTINGS.read().unwrap().get_str("Storage.Bucket").unwrap();
-
     let mongo_handler = Arc::new(MongoHandler::new().await?);
 
-    let object_storage_handler = Arc::new(S3Handler::new(
-        s3_endpoint.to_string(),
-        "RegionOne".to_string(),
-        s3_bucket.clone(),
-    ));
+    let object_storage_handler = Arc::new(S3Handler::new());
 
     let auth_type_handler = SETTINGS.read().unwrap().get_str("Authentication.Type")?;
     let auth_type_handler_str = auth_type_handler.as_str();
@@ -52,26 +42,26 @@ pub async fn start_server() -> ResultWrapper<()> {
         _ => panic!("Could not parse auth type: {}", auth_type_handler),
     };
 
+    let handler_wrapper =
+        Arc::new(HandlerWrapper::new(mongo_handler.clone(), object_storage_handler.clone()).await?);
     let project_endpoints = ProjectServer {
-        mongo_client: mongo_handler.clone(),
         auth_handler: project_authz_handler.clone(),
+        handler: handler_wrapper.clone(),
     };
 
     let dataset_endpoints = DatasetsServer {
-        database_client: mongo_handler.clone(),
         auth_handler: project_authz_handler.clone(),
+        handler_wrapper: handler_wrapper.clone(),
     };
 
     let objects_endpoints = ObjectServer {
-        database_client: mongo_handler.clone(),
-        object_handler: object_storage_handler.clone(),
         auth_handler: project_authz_handler.clone(),
+        handler_wrapper: handler_wrapper.clone(),
     };
 
     let load_endpoints = LoadServer {
-        mongo_client: mongo_handler.clone(),
-        object_handler: object_storage_handler.clone(),
         auth_handler: project_authz_handler.clone(),
+        wrapper: handler_wrapper.clone(),
     };
 
     let host = SETTINGS.try_read().unwrap().get_str("Server.Host").unwrap();

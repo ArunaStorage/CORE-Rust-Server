@@ -18,15 +18,16 @@ use std::{
 use log::error;
 use mongodb::{bson::doc, options::FindOneOptions};
 
-use super::{
-    common_models::{DatabaseModel, Right, User},
-    database::Database,
-    dataset_object_group::DatasetObject,
-    dataset_object_group::ObjectGroup,
-    dataset_object_group::ObjectGroupRevision,
-    project_model::ProjectEntry,
+use super::database::Database;
+
+use crate::{
+    models::{
+        common_models::{DatabaseModel, Right, Status, User},
+        dataset_object_group::{DatasetObject, ObjectGroupRevision},
+        project_model::ProjectEntry,
+    },
+    SETTINGS,
 };
-use crate::SETTINGS;
 
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services;
 
@@ -38,12 +39,27 @@ pub struct MongoHandler {
 }
 
 impl MongoHandler {
-    pub async fn new() -> ResultWrapper<Self> {
+    /// Initiates a new MongoDB handler
+    /// Behaves like new_with_db_name but the database name is also read from the configuration file
+    pub async fn new() -> Result<Self, tonic::Status> {
+        let database_name = SETTINGS
+            .read()
+            .unwrap()
+            .get_str("Database.Mongo.Database")
+            .unwrap_or("objectsdb".to_string());
+
+        return MongoHandler::new_with_db_name(database_name).await;
+    }
+
+    /// Initiates a new MongoDB handler
+    /// The name of the mongo database is provided
+    /// All other parameters are read from the configuration file
+    pub async fn new_with_db_name(database_name: String) -> Result<Self, tonic::Status> {
         let host = SETTINGS
             .read()
             .unwrap()
             .get_str("Database.Mongo.Host")
-            .unwrap_or("127.0.0.1".to_string());
+            .unwrap_or("localhost".to_string());
         let username = SETTINGS
             .read()
             .unwrap()
@@ -59,17 +75,15 @@ impl MongoHandler {
             .unwrap()
             .get_str("Database.Mongo.Source")
             .unwrap_or("admin".to_string());
-        let database_name = SETTINGS
-            .read()
-            .unwrap()
-            .get_str("Database.Mongo.Database")
-            .unwrap_or("objectsdb".to_string());
 
         let password = env::var("MONGO_PASSWORD").unwrap_or("test123".to_string());
 
         let port_u16 = match u16::try_from(port) {
             Ok(value) => value,
-            Err(e) => return Err(Box::new(e)),
+            Err(e) => {
+                error!("{:?}", e);
+                std::process::exit(2);
+            }
         };
 
         let host = ServerAddress::Tcp {
@@ -88,7 +102,13 @@ impl MongoHandler {
             .hosts(vec![host])
             .build();
 
-        let client = Client::with_options(client_options)?;
+        let client = match Client::with_options(client_options) {
+            Ok(value) => value,
+            Err(e) => {
+                error!("{:?}", e);
+                std::process::exit(1)
+            }
+        };
 
         Ok(MongoHandler {
             database_name: database_name,
@@ -96,6 +116,8 @@ impl MongoHandler {
         })
     }
 
+    /// Returns an entry based on the internal ID of an inserted object
+    /// This can be used to get the model of an inserted object since MongoDB will only return the ObjectID of the inserted object
     async fn get_model_entry_internal_id<'de, T: DatabaseModel<'de>>(
         &self,
         id: Bson,
@@ -138,6 +160,8 @@ impl MongoHandler {
         return Ok(Some(model));
     }
 
+
+    ///Transforms the given Document into the associated internal model representation
     #[allow(dead_code)]
     pub fn to_model<'de, T: DatabaseModel<'de>>(
         &self,
@@ -161,7 +185,12 @@ impl MongoHandler {
         return Ok(Some(model));
     }
 
-    fn collection<'de, T: DatabaseModel<'de>>(&self) -> mongodb::Collection {
+
+    /// Returns the MongoDB collection that handles a specific model type
+    fn collection<'de, T, V>(&self) -> mongodb::Collection<V>
+    where
+        T: DatabaseModel<'de>,
+    {
         self.mongo_client
             .database(&self.database_name)
             .collection(&T::get_model_name().unwrap())
@@ -177,7 +206,11 @@ impl Database for MongoHandler {
         let mut entries = Vec::new();
         let filter_options = FindOptions::default();
 
-        let mut csr = match self.collection::<T>().find(query, filter_options).await {
+        let mut csr = match self
+            .collection::<T, Document>()
+            .find(query, filter_options)
+            .await
+        {
             Ok(value) => value,
             Err(e) => {
                 error!("{}", e);
@@ -216,7 +249,11 @@ impl Database for MongoHandler {
             }
         };
 
-        let result = match self.collection::<T>().insert_one(data_document, None).await {
+        let result = match self
+            .collection::<T, Document>()
+            .insert_one(data_document, None)
+            .await
+        {
             Ok(value) => value,
             Err(e) => {
                 error!("{:?}", e);
@@ -251,7 +288,7 @@ impl Database for MongoHandler {
         &self,
         request: &services::AddUserToProjectRequest,
     ) -> Result<(), tonic::Status> {
-        let collection = self.collection::<ProjectEntry>();
+        let collection = self.collection::<ProjectEntry, Document>();
         let filter = doc! {
             "id": request.project_id.clone(),
         };
@@ -290,19 +327,20 @@ impl Database for MongoHandler {
         return Ok(());
     }
 
-    async fn find_object(&self, id: String) -> Result<DatasetObject, tonic::Status> {
+    async fn find_object(&self, id: &str) -> Result<DatasetObject, tonic::Status> {
         let filter = doc! {
             "objects.id": id
         };
 
         let projection = doc! {
-            "objects.id": 1,
+            "objects.$": 1,
+            "_id": 0,
         };
 
         let options = FindOneOptions::builder().projection(projection).build();
 
         let csr = match self
-            .collection::<ObjectGroup>()
+            .collection::<ObjectGroupRevision, Document>()
             .find_one(filter, options)
             .await
         {
@@ -315,18 +353,42 @@ impl Database for MongoHandler {
             }
         };
 
-        let object = match csr {
-            Some(value) => ObjectGroupRevision::new_from_document(value),
-            None => {
-                let e = Err(tonic::Status::internal(format!(
-                    "error when parsing documents"
-                )));
+        let document = csr.ok_or(tonic::Status::internal(
+            "could not find requested dataset object",
+        ))?;
+        let objects_list = match document.get_array("objects") {
+            Ok(value) => value.to_owned(),
+            Err(e) => {
                 error!("{:?}", e);
-                return e;
+                return Err(tonic::Status::internal(
+                    "could not read requested dataset object",
+                ));
             }
-        }?;
+        };
 
-        return Ok(object.objects[0].clone());
+        if objects_list.len() != 1 {
+            error!(
+                "wrong number of objects found in objects list: found {} objects for object_id {}",
+                objects_list.len(),
+                id
+            );
+            return Err(tonic::Status::internal(
+                "could not read requested dataset object",
+            ));
+        }
+
+        let bson_object = &objects_list[0];
+        let object: DatasetObject = match bson::from_bson(bson_object.to_owned()) {
+            Ok(value) => value,
+            Err(e) => {
+                error!("{:?}", e);
+                return Err(tonic::Status::internal(
+                    "could not read requested dataset object",
+                ));
+            }
+        };
+
+        return Ok(object);
     }
 
     async fn update_field<'de, T: DatabaseModel<'de>>(
@@ -334,7 +396,11 @@ impl Database for MongoHandler {
         query: Document,
         update: Document,
     ) -> Result<u64, tonic::Status> {
-        match self.collection::<T>().update_one(query, update, None).await {
+        match self
+            .collection::<T, Document>()
+            .update_one(query, update, None)
+            .await
+        {
             Ok(value) => return Ok(value.modified_count),
             Err(e) => {
                 log::error!("{:?}", e);
@@ -348,10 +414,14 @@ impl Database for MongoHandler {
     async fn find_one_by_key<'de, T: DatabaseModel<'de>>(
         &self,
         query: Document,
-    ) -> Result<Option<T>, tonic::Status> {
+    ) -> Result<T, tonic::Status> {
         let filter_options = FindOneOptions::default();
 
-        let csr = match self.collection::<T>().find_one(query, filter_options).await {
+        let csr = match self
+            .collection::<T, Document>()
+            .find_one(query, filter_options)
+            .await
+        {
             Ok(value) => value,
             Err(e) => {
                 log::error!("{:?}", e);
@@ -363,10 +433,15 @@ impl Database for MongoHandler {
 
         let entry = match csr {
             Some(value) => T::new_from_document(value)?,
-            None => return Ok(None),
+            None => {
+                return Err(tonic::Status::not_found(format!(
+                    "could not find requested document. type: {}",
+                    T::get_model_name()?
+                )))
+            }
         };
 
-        Ok(Some(entry))
+        Ok(entry)
     }
 
     async fn update_on_field<'de, T: DatabaseModel<'de>>(
@@ -375,7 +450,7 @@ impl Database for MongoHandler {
         update: Document,
     ) -> Result<T, tonic::Status> {
         let option_document = match self
-            .collection::<T>()
+            .collection::<T, Document>()
             .find_one_and_update(query, update, None)
             .await
         {
@@ -408,6 +483,85 @@ impl Database for MongoHandler {
         };
 
         return Ok(option_value);
+    }
+
+    async fn delete<'de, T: DatabaseModel<'de>>(
+        &self,
+        query: Document,
+    ) -> Result<(), tonic::Status> {
+        match self
+            .collection::<T, Document>()
+            .delete_one(query, None)
+            .await
+        {
+            Ok(_) => (),
+            Err(e) => {
+                log::error!("{:?}", e);
+                tonic::Status::internal(format!("could not delete object"));
+            }
+        }
+
+        return Ok(());
+    }
+
+    async fn update_status<'de, T: DatabaseModel<'de>>(
+        &self,
+        id: &str,
+        status: Status,
+    ) -> Result<(), tonic::Status> {
+        let query = doc! {
+            "id": id
+        };
+
+        let value = match mongodb::bson::to_bson(&status) {
+            Ok(value) => value,
+            Err(e) => {
+                error!("{:?}", e);
+                return Err(tonic::Status::internal(format!(
+                    "error when converting request to document"
+                )));
+            }
+        };
+
+        let update = doc! {
+            "$set": {
+                "status":  value
+            }
+        };
+
+        match self
+            .collection::<T, Document>()
+            .update_one(query, update, None)
+            .await
+        {
+            Ok(_) => (),
+            Err(e) => {
+                error!("{:?}", e);
+                return Err(tonic::Status::internal(format!("error on status update")));
+            }
+        }
+
+        return Ok(());
+    }
+
+    async fn update_fields<'de, T: DatabaseModel<'de>>(
+        &self,
+        query: Document,
+        update: Document,
+    ) -> Result<u64, tonic::Status> {
+        match self
+            .collection::<T, Document>()
+            .update_many(query, update, None)
+            .await
+        {
+            Ok(value) => return Ok(value.modified_count),
+            Err(e) => {
+                log::error!("{:?}", e);
+                return Err(tonic::Status::internal(format!(
+                    "error when trying to update document"
+                )));
+            }
+        };
     }
 }
 

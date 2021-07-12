@@ -26,6 +26,10 @@ impl DatabaseModel<'_> for DatasetEntry {
     fn get_model_name() -> Result<String, tonic::Status> {
         Ok("Dataset".to_string())
     }
+
+    fn get_parent_field_name() -> Result<String, tonic::Status> {
+        Ok("project_id".to_string())
+    }
 }
 
 impl DatasetEntry {
