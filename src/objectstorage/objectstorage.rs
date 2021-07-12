@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use scienceobjectsdb_rust_api::sciobjectsdbapi::services::CompletedParts;
+use scienceobjectsdb_rust_api::sciobjectsdbapi::services::v1::CompletedParts;
 
 use crate::models::{
     common_models::{IndexLocation, Location},

@@ -30,7 +30,7 @@ impl DatabaseModel<'_> for ProjectEntry {
 
 impl ProjectEntry {
     pub fn new_from_proto_create(
-        request: &services::CreateProjectRequest,
+        request: &services::v1::CreateProjectRequest,
         user_id: String,
     ) -> Result<Self, tonic::Status> {
         let user = User {
@@ -51,8 +51,8 @@ impl ProjectEntry {
         return Ok(project);
     }
 
-    pub fn to_proto_project(&self) -> models::Project {
-        let proto_project = models::Project {
+    pub fn to_proto_project(&self) -> models::v1::Project {
+        let proto_project = models::v1::Project {
             id: self.id.to_string(),
             description: self.description.to_string(),
             labels: to_proto_labels(&self.labels),

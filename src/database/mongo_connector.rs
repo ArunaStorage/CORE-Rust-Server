@@ -160,7 +160,6 @@ impl MongoHandler {
         return Ok(Some(model));
     }
 
-
     ///Transforms the given Document into the associated internal model representation
     #[allow(dead_code)]
     pub fn to_model<'de, T: DatabaseModel<'de>>(
@@ -184,7 +183,6 @@ impl MongoHandler {
 
         return Ok(Some(model));
     }
-
 
     /// Returns the MongoDB collection that handles a specific model type
     fn collection<'de, T, V>(&self) -> mongodb::Collection<V>
@@ -286,7 +284,7 @@ impl Database for MongoHandler {
 
     async fn add_user(
         &self,
-        request: &services::AddUserToProjectRequest,
+        request: &services::v1::AddUserToProjectRequest,
     ) -> Result<(), tonic::Status> {
         let collection = self.collection::<ProjectEntry, Document>();
         let filter = doc! {

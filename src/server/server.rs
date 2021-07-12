@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
 use log::info;
-use scienceobjectsdb_rust_api::sciobjectsdbapi::services::{
-    dataset_objects_service_server::DatasetObjectsServiceServer,
-    dataset_service_server::DatasetServiceServer, object_load_server::ObjectLoadServer,
-    project_api_server::ProjectApiServer,
-};
+use scienceobjectsdb_rust_api::sciobjectsdbapi::services::v1::dataset_objects_service_server;
+use scienceobjectsdb_rust_api::sciobjectsdbapi::services::v1::dataset_service_server;
+use scienceobjectsdb_rust_api::sciobjectsdbapi::services::v1::object_load_service_server;
+use scienceobjectsdb_rust_api::sciobjectsdbapi::services::v1::project_service_server;
+
 use tonic::transport::Server;
 
 use crate::handler::common::HandlerWrapper;
@@ -72,10 +72,18 @@ pub async fn start_server() -> ResultWrapper<()> {
     info!("Starting webserver on {} port {}", &host, &port);
 
     Server::builder()
-        .add_service(ProjectApiServer::new(project_endpoints))
-        .add_service(DatasetServiceServer::new(dataset_endpoints))
-        .add_service(DatasetObjectsServiceServer::new(objects_endpoints))
-        .add_service(ObjectLoadServer::new(load_endpoints))
+        .add_service(project_service_server::ProjectServiceServer::new(
+            project_endpoints,
+        ))
+        .add_service(dataset_service_server::DatasetServiceServer::new(
+            dataset_endpoints,
+        ))
+        .add_service(
+            dataset_objects_service_server::DatasetObjectsServiceServer::new(objects_endpoints),
+        )
+        .add_service(object_load_service_server::ObjectLoadServiceServer::new(
+            load_endpoints,
+        ))
         .serve(addr)
         .await?;
 

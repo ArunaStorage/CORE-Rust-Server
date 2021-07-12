@@ -10,7 +10,7 @@ use bson::doc;
 use futures::stream::FuturesUnordered;
 use futures::stream::StreamExt;
 
-use scienceobjectsdb_rust_api::sciobjectsdbapi::services::{
+use scienceobjectsdb_rust_api::sciobjectsdbapi::services::v1::{
     CreateDatasetRequest, CreateObjectGroupRequest, CreateObjectGroupRevisionRequest,
     CreateProjectRequest, ReleaseDatasetVersionRequest,
 };

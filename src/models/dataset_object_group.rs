@@ -41,7 +41,7 @@ impl DatabaseModel<'_> for ObjectGroup {
 
 impl ObjectGroup {
     pub fn new_from_proto_create(
-        request: &services::CreateObjectGroupRequest,
+        request: &services::v1::CreateObjectGroupRequest,
     ) -> Result<Self, tonic::Status> {
         let uuid = uuid::Uuid::new_v4();
 
@@ -59,8 +59,8 @@ impl ObjectGroup {
         return Ok(object_group);
     }
 
-    pub fn to_proto(&self) -> models::ObjectGroup {
-        let proto_object = models::ObjectGroup {
+    pub fn to_proto(&self) -> models::v1::ObjectGroup {
+        let proto_object = models::v1::ObjectGroup {
             id: self.id.clone(),
             dataset_id: self.dataset_id.clone(),
             labels: to_proto_labels(&self.labels),
@@ -103,7 +103,7 @@ impl DatabaseModel<'_> for ObjectGroupRevision {
 
 impl ObjectGroupRevision {
     pub fn new_from_proto_create(
-        request: &services::CreateObjectGroupRevisionRequest,
+        request: &services::v1::CreateObjectGroupRevisionRequest,
         object_group: &ObjectGroup,
         bucket: String,
     ) -> Result<Self, tonic::Status> {
@@ -142,7 +142,7 @@ impl ObjectGroupRevision {
         return Ok(object_group);
     }
 
-    pub fn to_proto(&self) -> models::ObjectGroupRevision {
+    pub fn to_proto(&self) -> models::v1::ObjectGroupRevision {
         let mut proto_objects = Vec::new();
 
         for object in &self.objects {
@@ -150,7 +150,7 @@ impl ObjectGroupRevision {
             proto_objects.push(proto_object);
         }
 
-        let proto_object = models::ObjectGroupRevision {
+        let proto_object = models::v1::ObjectGroupRevision {
             id: self.id.clone(),
             dataset_id: self.datasete_id.clone(),
             labels: to_proto_labels(&self.labels),
@@ -192,7 +192,7 @@ impl DatabaseModel<'_> for DatasetObject {
 
 impl DatasetObject {
     pub fn new_from_proto_create(
-        request: &services::CreateObjectRequest,
+        request: &services::v1::CreateObjectRequest,
         dataset_id: String,
         bucket: String,
     ) -> Result<Self, tonic::Status> {
@@ -232,11 +232,11 @@ impl DatasetObject {
         Ok(object)
     }
 
-    pub fn to_proto_object(&self) -> models::Object {
+    pub fn to_proto_object(&self) -> models::v1::Object {
         let system_time: SystemTime = self.created.unwrap().into();
         let timestamp = Timestamp::from(system_time);
 
-        let proto_object = models::Object {
+        let proto_object = models::v1::Object {
             id: self.id.clone(),
             filename: self.filename.clone(),
             filetype: self.filetype.clone(),

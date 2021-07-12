@@ -42,7 +42,7 @@ impl DatabaseModel<'_> for DatasetVersion {
 
 impl DatasetVersion {
     pub fn new_from_proto_create(
-        request: &services::ReleaseDatasetVersionRequest,
+        request: &services::v1::ReleaseDatasetVersionRequest,
     ) -> Result<Self, tonic::Status> {
         let uuid = uuid::Uuid::new_v4();
         let timestamp = Utc::now();
@@ -63,11 +63,11 @@ impl DatasetVersion {
         return Ok(dataset_version);
     }
 
-    pub fn to_proto(&self) -> models::DatasetVersion {
+    pub fn to_proto(&self) -> models::v1::DatasetVersion {
         let system_time: SystemTime = self.created.into();
         let timestamp = Timestamp::try_from(system_time).unwrap();
 
-        let proto_version = models::DatasetVersion {
+        let proto_version = models::v1::DatasetVersion {
             id: self.id.clone(),
             dataset_id: self.dataset_id.clone(),
             description: self.description.clone(),

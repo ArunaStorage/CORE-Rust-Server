@@ -151,9 +151,9 @@ checksum = "b700ce4376041dcd0a327fd0097c41095743c4c8af8887265942faf1100bd040"
 
 [[package]]
 name = "cc"
-version = "1.0.68"
+version = "1.0.69"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a72c244c1ff497a746a7e1fb3d14bd08420ecda70c8f25c7112f2781652d787"
+checksum = "e70cc2f62c6ce1868963827bd677764c62d07c3d9a3e1fb1177ee1a9ab199eb2"
 
 [[package]]
 name = "cfg-if"
@@ -1639,7 +1639,7 @@ dependencies = [
 [[package]]
 name = "scienceobjectsdb_rust_api"
 version = "0.1.0"
-source = "git+https://github.com/ScienceObjectsDB/rust-api?branch=main#21c257a3236c1bb9c24120825e567b35877fddb9"
+source = "git+https://github.com/ScienceObjectsDB/rust-api?branch=main#de3cd9ec71d92894e90c270f9590de4ccab17f5b"
 dependencies = [
  "prost",
  "prost-derive",

@@ -12,7 +12,7 @@ use rusoto_s3::{
     CompleteMultipartUploadRequest, CompletedMultipartUpload, CreateMultipartUploadRequest,
     DeleteObjectRequest, GetObjectRequest, PutObjectRequest, S3Client, UploadPartRequest, S3,
 };
-use scienceobjectsdb_rust_api::sciobjectsdbapi::services::CompletedParts;
+use scienceobjectsdb_rust_api::sciobjectsdbapi::services;
 
 use super::objectstorage::StorageHandler;
 use crate::models::{
@@ -222,7 +222,7 @@ impl StorageHandler for S3Handler {
     async fn finish_multipart_upload(
         &self,
         location: &Location,
-        objects: &Vec<CompletedParts>,
+        objects: &Vec<services::v1::CompletedParts>,
         upload_id: &str,
     ) -> Result<(), tonic::Status> {
         let mut upload_objects = Vec::new();
@@ -289,7 +289,7 @@ mod tests {
     use std::{env, iter::FromIterator, path::PathBuf, sync::Once};
 
     use config::File;
-    use scienceobjectsdb_rust_api::sciobjectsdbapi::services::{self, CreateObjectRequest};
+    use scienceobjectsdb_rust_api::sciobjectsdbapi::services;
 
     use crate::{
         models::dataset_object_group::DatasetObject, objectstorage::objectstorage::StorageHandler,
@@ -426,7 +426,7 @@ mod tests {
 
         let s3_handler = S3Handler::new();
 
-        let create_object_req = CreateObjectRequest {
+        let create_object_req = services::v1::CreateObjectRequest {
             filename: "testfile".to_string(),
             labels: Vec::new(),
             filetype: "binary".to_string(),
@@ -488,7 +488,7 @@ mod tests {
             }
         };
 
-        let uploaded_part_1 = services::CompletedParts {
+        let uploaded_part_1 = services::v1::CompletedParts {
             etag: etag_1.to_str().unwrap().to_string(),
             part: 1,
         };
@@ -510,7 +510,7 @@ mod tests {
             }
         };
 
-        let uploaded_part_2 = services::CompletedParts {
+        let uploaded_part_2 = services::v1::CompletedParts {
             etag: etag_2.to_str().unwrap().to_string(),
             part: 2,
         };

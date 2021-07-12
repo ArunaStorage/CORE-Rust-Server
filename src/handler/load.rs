@@ -1,5 +1,5 @@
 use bson::doc;
-use scienceobjectsdb_rust_api::sciobjectsdbapi::services::CompletedParts;
+use scienceobjectsdb_rust_api::sciobjectsdbapi::services::v1::CompletedParts;
 
 use crate::{
     database::database::Database,
@@ -37,7 +37,6 @@ where
 
         return Ok(link);
     }
-
 
     /// Initiates a multipart upload. It returns the object which is associated with the uploaded object
     /// If a multipart upload is initiated the upload_id field is set

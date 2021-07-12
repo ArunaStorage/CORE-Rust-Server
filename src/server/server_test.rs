@@ -2,12 +2,11 @@
 mod server_test {
     use std::sync::Arc;
 
-    use scienceobjectsdb_rust_api::sciobjectsdbapi::services::dataset_objects_service_server::DatasetObjectsService;
-    use scienceobjectsdb_rust_api::sciobjectsdbapi::services::dataset_service_server::DatasetService;
-    use scienceobjectsdb_rust_api::sciobjectsdbapi::services::object_load_server::ObjectLoad;
-    use scienceobjectsdb_rust_api::sciobjectsdbapi::services::project_api_server::ProjectApi;
+    use scienceobjectsdb_rust_api::sciobjectsdbapi::services::v1::dataset_objects_service_server::DatasetObjectsService;
+    use scienceobjectsdb_rust_api::sciobjectsdbapi::services::v1::dataset_service_server::DatasetService;
+    use scienceobjectsdb_rust_api::sciobjectsdbapi::services::v1::object_load_service_server::ObjectLoadService;
+    use scienceobjectsdb_rust_api::sciobjectsdbapi::services::v1::project_service_server::ProjectService;
 
-    use scienceobjectsdb_rust_api::sciobjectsdbapi::models;
     use scienceobjectsdb_rust_api::sciobjectsdbapi::services;
 
     use tonic::Request;
@@ -76,13 +75,13 @@ mod server_test {
     }
 
     async fn project_test(endpoints: &TestEndpointStruct) -> String {
-        let create_project_request = Request::new(services::CreateProjectRequest {
+        let create_project_request = Request::new(services::v1::CreateProjectRequest {
             name: "testproject1".to_string(),
             description: "Some description".to_string(),
             ..Default::default()
         });
 
-        let create_project_request_2 = Request::new(services::CreateProjectRequest {
+        let create_project_request_2 = Request::new(services::v1::CreateProjectRequest {
             name: "testproject2".to_string(),
             description: "Some description".to_string(),
             ..Default::default()
@@ -104,7 +103,7 @@ mod server_test {
 
         let found_projects = endpoints
             .project_handler
-            .get_user_projects(Request::new(models::Empty {}))
+            .get_user_projects(Request::new(services::v1::GetUserProjectsRequest {}))
             .await
             .unwrap();
 
@@ -112,11 +111,11 @@ mod server_test {
             panic!("wrong number of projects found for testuser")
         };
 
-        return project.id.clone();
+        return project.project.unwrap().id.clone();
     }
 
     async fn dataset_test(test_project_id: String, endpoints: &TestEndpointStruct) -> String {
-        let create_dataset_request = Request::new(services::CreateDatasetRequest {
+        let create_dataset_request = Request::new(services::v1::CreateDatasetRequest {
             project_id: test_project_id,
             name: "testdataset".to_string(),
             ..Default::default()
@@ -131,7 +130,7 @@ mod server_test {
 
         endpoints
             .dataset_handler
-            .get_dataset(Request::new(models::Id {
+            .get_dataset(Request::new(services::v1::GetDatasetRequest {
                 id: dataset.id.clone(),
             }))
             .await
@@ -141,39 +140,62 @@ mod server_test {
     }
 
     async fn object_group_test(test_dataset_id: String, endpoint: &TestEndpointStruct) -> String {
-        let create_object_request = services::CreateObjectRequest {
+        let create_object_request = services::v1::CreateObjectRequest {
             filename: "testobject.txt".to_string(),
             filetype: "txt".to_string(),
             content_len: 8,
             ..Default::default()
         };
 
-        let create_object_group_request =
-            Request::new(services::CreateObjectGroupWithRevisionRequest {
-                object_group: Some(services::CreateObjectGroupRequest {
-                    dataset_id: test_dataset_id,
-                    name: "test_group".to_string(),
-                    ..Default::default()
-                }),
-                object_group_version: Some(services::CreateObjectGroupRevisionRequest {
-                    objects: vec![create_object_request],
-                    ..Default::default()
-                }),
+        let create_object_group_request = Request::new(services::v1::CreateObjectGroupRequest {
+            dataset_id: test_dataset_id,
+            name: "test_group".to_string(),
+            object_group_version: Some(services::v1::CreateObjectGroupRevisionRequest {
+                objects: vec![create_object_request],
                 ..Default::default()
-            });
+            }),
+            ..Default::default()
+        });
 
-        let object_group = endpoint
+        let create_object_group_response = endpoint
             .object_handler
             .create_object_group(create_object_group_request)
             .await
             .unwrap()
             .into_inner();
 
-        let object_id = object_group.object_group_revision.unwrap().objects[0]
+        let object_group_id = create_object_group_response.id.clone();
+
+        let _object_group = endpoint
+            .object_handler
+            .get_object_group(Request::new(services::v1::GetObjectGroupRequest {
+                id: object_group_id.clone(),
+            }))
+            .await
+            .unwrap()
+            .into_inner();
+
+        let current_revision_request = Request::new(services::v1::GetObjectGroupRevisionRequest {
+            revision: 0,
+            reference_type: services::v1::ObjectGroupRevisionReferenceType::Revision as i32,
+            ..Default::default()
+        });
+
+        let current_revision = endpoint
+            .object_handler
+            .get_object_group_revision(current_revision_request)
+            .await
+            .unwrap();
+
+        let object_id = current_revision
+            .into_inner()
+            .object_group_revision
+            .unwrap()
+            .objects[0]
             .id
             .clone();
 
-        let upload_request = Request::new(models::Id {
+        let upload_request = Request::new(services::v1::CreateUploadLinkRequest {
             id: object_id.clone(),
         });
 
@@ -203,7 +225,7 @@ mod server_test {
             }
         }
 
-        let download_request = Request::new(models::Id {
+        let download_request = Request::new(services::v1::CreateDownloadLinkRequest {
             id: object_id.clone(),
         });
 
@@ -231,26 +253,26 @@ mod server_test {
             panic!("downloaded data does not match uploaded rata")
         }
 
-        return object_group.object_group.unwrap().id;
+        return object_group_id;
     }
 
     async fn test_revisions(
         endpoints: &TestEndpointStruct,
         object_group_id: String,
     ) -> Result<(), tonic::Status> {
-        let create_object_request = services::CreateObjectRequest {
+        let create_object_request = services::v1::CreateObjectRequest {
             filename: "testobject.txt".to_string(),
             filetype: "txt".to_string(),
             content_len: 8,
             ..Default::default()
         };
 
-        let create_revision = services::CreateObjectGroupRevisionRequest {
+        let create_revision = services::v1::CreateObjectGroupRevisionRequest {
             objects: vec![create_object_request],
             ..Default::default()
         };
 
-        let add_revision_request = services::AddRevisionToObjectGroupRequest {
+        let add_revision_request = services::v1::AddRevisionToObjectGroupRequest {
             object_group_id: object_group_id.clone(),
             group_version: Some(create_revision),
         };
@@ -275,7 +297,7 @@ mod server_test {
     }
 
     async fn load_test(object_id: String, endpoints: &TestEndpointStruct, testdata: &'static str) {
-        let upload_request = Request::new(models::Id {
+        let upload_request = Request::new(services::v1::CreateUploadLinkRequest {
             id: object_id.clone(),
         });
 
@@ -305,7 +327,7 @@ mod server_test {
             }
         }
 
-        let download_request = Request::new(models::Id {
+        let download_request = Request::new(services::v1::CreateDownloadLinkRequest {
             id: object_id.clone(),
         });
 
@@ -346,6 +368,6 @@ mod server_test {
         let project_id = project_test(&endpoints).await;
         let dataset_id = dataset_test(project_id, &endpoints).await;
         let object_group_id = object_group_test(dataset_id.clone(), &endpoints).await;
-        test_revisions(&endpoints, object_group_id).await;
+        test_revisions(&endpoints, object_group_id).await.unwrap();
     }
 }

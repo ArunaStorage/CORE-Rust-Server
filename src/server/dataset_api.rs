@@ -3,9 +3,8 @@ use std::sync::Arc;
 use futures::stream::FuturesUnordered;
 use futures::stream::StreamExt;
 
-use scienceobjectsdb_rust_api::sciobjectsdbapi::models::{self};
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services;
-use scienceobjectsdb_rust_api::sciobjectsdbapi::services::dataset_service_server::DatasetService;
+use scienceobjectsdb_rust_api::sciobjectsdbapi::services::v1::dataset_service_server::DatasetService;
 use tonic::Response;
 
 use crate::database::database::Database;
@@ -29,8 +28,8 @@ pub struct DatasetsServer<T: Database + 'static> {
 impl<T: Database> DatasetService for DatasetsServer<T> {
     async fn create_dataset(
         &self,
-        request: tonic::Request<services::CreateDatasetRequest>,
-    ) -> Result<Response<models::Dataset>, tonic::Status> {
+        request: tonic::Request<services::v1::CreateDatasetRequest>,
+    ) -> Result<Response<services::v1::CreateDatasetResponse>, tonic::Status> {
         let inner_request = request.get_ref();
 
         self.auth_handler
@@ -48,13 +47,15 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
             .create_dataset(inner_request)
             .await?;
 
-        return Ok(Response::new(dataset.to_proto_dataset()));
+        let response = services::v1::CreateDatasetResponse { id: dataset.id };
+
+        return Ok(Response::new(response));
     }
 
     async fn get_dataset(
         &self,
-        request: tonic::Request<models::Id>,
-    ) -> Result<Response<models::Dataset>, tonic::Status> {
+        request: tonic::Request<services::v1::GetDatasetRequest>,
+    ) -> Result<Response<services::v1::GetDatasetResponse>, tonic::Status> {
         let inner_request = request.get_ref();
 
         self.auth_handler
@@ -72,13 +73,17 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
             .read_entry_by_id::<DatasetEntry>(inner_request.id.as_str())
             .await?;
 
-        return Ok(Response::new(dataset.to_proto_dataset()));
+        let response = services::v1::GetDatasetResponse {
+            dataset: vec![dataset.to_proto_dataset()],
+        };
+
+        return Ok(Response::new(response));
     }
 
     async fn get_dataset_versions(
         &self,
-        request: tonic::Request<models::Id>,
-    ) -> Result<Response<services::DatasetVersionList>, tonic::Status> {
+        request: tonic::Request<services::v1::GetDatasetVersionsRequest>,
+    ) -> Result<Response<services::v1::GetDatasetVersionsResponse>, tonic::Status> {
         let inner_request = request.get_ref();
         self.auth_handler
             .authorize(
@@ -96,8 +101,8 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
             .await?;
         let dataset_versions_proto = dataset_versions.into_iter().map(|x| x.to_proto()).collect();
 
-        let version_list = services::DatasetVersionList {
-            dataset_version: dataset_versions_proto,
+        let version_list = services::v1::GetDatasetVersionsResponse {
+            dataset_versions: dataset_versions_proto,
         };
 
         return Ok(Response::new(version_list));
@@ -105,8 +110,8 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
 
     async fn get_dataset_object_groups(
         &self,
-        request: tonic::Request<models::Id>,
-    ) -> Result<Response<services::ObjectGroupList>, tonic::Status> {
+        request: tonic::Request<services::v1::GetDatasetObjectGroupsRequest>,
+    ) -> Result<Response<services::v1::GetDatasetObjectGroupsResponse>, tonic::Status> {
         let inner_request = request.get_ref();
         self.auth_handler
             .authorize(
@@ -124,7 +129,7 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
             .await?;
         let object_groups_proto = object_groups.into_iter().map(|x| x.to_proto()).collect();
 
-        let object_groups_list = services::ObjectGroupList {
+        let object_groups_list = services::v1::GetDatasetObjectGroupsResponse {
             object_groups: object_groups_proto,
         };
 
@@ -133,23 +138,23 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
 
     async fn get_current_object_group_revisions(
         &self,
-        _request: tonic::Request<models::Id>,
-    ) -> Result<Response<services::ObjectGroupRevisions>, tonic::Status> {
+        _request: tonic::Request<services::v1::GetCurrentObjectGroupRevisionsRequest>,
+    ) -> Result<Response<services::v1::GetCurrentObjectGroupRevisionsResponse>, tonic::Status> {
         unimplemented!()
     }
 
     async fn update_dataset_field(
         &self,
-        request: tonic::Request<models::UpdateFieldsRequest>,
-    ) -> Result<Response<models::Dataset>, tonic::Status> {
+        request: tonic::Request<services::v1::UpdateDatasetFieldRequest>,
+    ) -> Result<Response<services::v1::UpdateDatasetFieldResponse>, tonic::Status> {
         let _inner_request = request.get_ref();
         return Err(tonic::Status::unimplemented("not implemented"));
     }
 
     async fn delete_dataset(
         &self,
-        request: tonic::Request<models::Id>,
-    ) -> Result<Response<models::Empty>, tonic::Status> {
+        request: tonic::Request<services::v1::DeleteDatasetRequest>,
+    ) -> Result<Response<services::v1::DeleteDatasetResponse>, tonic::Status> {
         let inner_request = request.get_ref();
         self.auth_handler
             .authorize(
@@ -165,13 +170,13 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
             .delete_dataset(inner_request.id.clone())
             .await?;
 
-        return Ok(Response::new(models::Empty {}));
+        return Ok(Response::new(services::v1::DeleteDatasetResponse {}));
     }
 
     async fn release_dataset_version(
         &self,
-        request: tonic::Request<services::ReleaseDatasetVersionRequest>,
-    ) -> Result<Response<models::DatasetVersion>, tonic::Status> {
+        request: tonic::Request<services::v1::ReleaseDatasetVersionRequest>,
+    ) -> Result<Response<services::v1::ReleaseDatasetVersionResponse>, tonic::Status> {
         let inner_request = request.get_ref();
         self.auth_handler
             .authorize(
@@ -202,18 +207,15 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
             value?
         }
 
-        let dataset_version = self
-            .handler_wrapper
-            .create_handler
-            .create_datatset_version(inner_request)
-            .await?;
-        return Ok(Response::new(dataset_version.to_proto()));
+        let response = services::v1::ReleaseDatasetVersionResponse {};
+
+        return Ok(Response::new(response));
     }
 
     async fn get_datset_version_revisions(
         &self,
-        request: tonic::Request<models::Id>,
-    ) -> Result<Response<services::ObjectGroupRevisions>, tonic::Status> {
+        request: tonic::Request<services::v1::GetDatsetVersionRevisionsRequest>,
+    ) -> Result<Response<services::v1::GetDatsetVersionRevisionsResponse>, tonic::Status> {
         let inner_request = request.get_ref();
         self.auth_handler
             .authorize(
@@ -228,8 +230,8 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
 
     async fn get_dataset_version(
         &self,
-        request: tonic::Request<models::Id>,
-    ) -> Result<Response<models::DatasetVersion>, tonic::Status> {
+        request: tonic::Request<services::v1::GetDatasetVersionRequest>,
+    ) -> Result<Response<services::v1::GetDatasetVersionResponse>, tonic::Status> {
         let inner_request = request.get_ref();
         self.auth_handler
             .authorize(
@@ -245,13 +247,18 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
             .read_handler
             .read_entry_by_id::<DatasetVersion>(inner_request.id.as_str())
             .await?;
-        return Ok(Response::new(dataset_version.to_proto()));
+
+        let response = services::v1::GetDatasetVersionResponse {
+            dataset_version: Some(dataset_version.to_proto()),
+        };
+
+        return Ok(Response::new(response));
     }
 
     async fn delete_dataset_version(
         &self,
-        request: tonic::Request<models::Id>,
-    ) -> Result<Response<models::Empty>, tonic::Status> {
+        request: tonic::Request<services::v1::DeleteDatasetVersionRequest>,
+    ) -> Result<Response<services::v1::DeleteDatasetVersionResponse>, tonic::Status> {
         let inner_request = request.get_ref();
         self.auth_handler
             .authorize(
@@ -267,6 +274,6 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
             .delete_dataset_version(inner_request.id.clone())
             .await?;
 
-        return Ok(Response::new(models::Empty {}));
+        return Ok(Response::new(services::v1::DeleteDatasetVersionResponse {}));
     }
 }

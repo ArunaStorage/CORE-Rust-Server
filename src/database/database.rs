@@ -3,7 +3,7 @@ use mongodb::bson::Document;
 
 use serde::{Deserialize, Serialize};
 
-use scienceobjectsdb_rust_api::sciobjectsdbapi::services::AddUserToProjectRequest;
+use scienceobjectsdb_rust_api::sciobjectsdbapi::services::v1::AddUserToProjectRequest;
 
 use crate::models::{
     common_models::{DatabaseModel, Status},
@@ -17,7 +17,6 @@ pub enum ObjectGroupIDType {
 }
 
 trait DatabaseSearchValue<'de>: Deserialize<'de> + Serialize + Send + Sync {}
-
 
 /// The database trait provides a set of primitves to handle database entries
 /// All entries of a model are stored in an individual collection. The functions are mostly generic for all

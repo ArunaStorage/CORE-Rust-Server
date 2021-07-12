@@ -2,13 +2,8 @@ use crate::handler::common::HandlerWrapper;
 use crate::{auth::authenticator::AuthHandler, database::database::Database};
 use std::sync::Arc;
 
-use scienceobjectsdb_rust_api::sciobjectsdbapi::services::CreateLinkResponse;
-use scienceobjectsdb_rust_api::sciobjectsdbapi::{
-    models::{Empty, Object},
-    services::object_load_server::ObjectLoad,
-};
+use scienceobjectsdb_rust_api::sciobjectsdbapi::services::v1::object_load_service_server::ObjectLoadService;
 
-use scienceobjectsdb_rust_api::sciobjectsdbapi::models;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services;
 use tonic::Response;
 
@@ -20,11 +15,11 @@ pub struct LoadServer<T: Database + 'static> {
 }
 
 #[tonic::async_trait]
-impl<T: Database> ObjectLoad for LoadServer<T> {
+impl<T: Database> ObjectLoadService for LoadServer<T> {
     async fn create_upload_link(
         &self,
-        request: tonic::Request<models::Id>,
-    ) -> Result<Response<services::CreateLinkResponse>, tonic::Status> {
+        request: tonic::Request<services::v1::CreateUploadLinkRequest>,
+    ) -> Result<Response<services::v1::CreateUploadLinkResponse>, tonic::Status> {
         let upload_object = request.get_ref();
         self.auth_handler
             .authorize(
@@ -46,16 +41,18 @@ impl<T: Database> ObjectLoad for LoadServer<T> {
             .find_object(upload_object.id.as_str())
             .await?;
 
-        Ok(tonic::Response::new(services::CreateLinkResponse {
-            upload_link: link,
-            object: Some(object.to_proto_object()),
-        }))
+        Ok(tonic::Response::new(
+            services::v1::CreateUploadLinkResponse {
+                upload_link: link,
+                object: Some(object.to_proto_object()),
+            },
+        ))
     }
 
     async fn create_download_link(
         &self,
-        request: tonic::Request<models::Id>,
-    ) -> Result<Response<services::CreateLinkResponse>, tonic::Status> {
+        request: tonic::Request<services::v1::CreateDownloadLinkRequest>,
+    ) -> Result<Response<services::v1::CreateDownloadLinkResponse>, tonic::Status> {
         let download_object = request.get_ref();
         self.auth_handler
             .authorize(
@@ -77,16 +74,18 @@ impl<T: Database> ObjectLoad for LoadServer<T> {
             .find_object(download_object.id.as_str())
             .await?;
 
-        Ok(tonic::Response::new(services::CreateLinkResponse {
-            upload_link: link,
-            object: Some(object.to_proto_object()),
-        }))
+        Ok(tonic::Response::new(
+            services::v1::CreateDownloadLinkResponse {
+                upload_link: link,
+                object: Some(object.to_proto_object()),
+            },
+        ))
     }
 
     async fn start_multipart_upload(
         &self,
-        request: tonic::Request<models::Id>,
-    ) -> Result<Response<Object>, tonic::Status> {
+        request: tonic::Request<services::v1::StartMultipartUploadRequest>,
+    ) -> Result<Response<services::v1::StartMultipartUploadResponse>, tonic::Status> {
         let download_object = request.get_ref();
         self.auth_handler
             .authorize(
@@ -103,13 +102,17 @@ impl<T: Database> ObjectLoad for LoadServer<T> {
             .init_multipart_upload(download_object.id.as_str())
             .await?;
 
-        return Ok(Response::new(object.to_proto_object()));
+        let response = services::v1::StartMultipartUploadResponse {
+            object: Some(object.to_proto_object()),
+        };
+
+        return Ok(Response::new(response));
     }
 
     async fn get_multipart_upload_link(
         &self,
-        request: tonic::Request<services::GetMultipartUploadRequest>,
-    ) -> Result<Response<CreateLinkResponse>, tonic::Status> {
+        request: tonic::Request<services::v1::GetMultipartUploadLinkRequest>,
+    ) -> Result<Response<services::v1::GetMultipartUploadLinkResponse>, tonic::Status> {
         let upload_request = request.get_ref();
         self.auth_handler
             .authorize(
@@ -133,16 +136,18 @@ impl<T: Database> ObjectLoad for LoadServer<T> {
                 upload_request.upload_part,
             )
             .await?;
-        return Ok(Response::new(CreateLinkResponse {
-            object: Some(object.to_proto_object()),
-            upload_link: part_link,
-        }));
+        return Ok(Response::new(
+            services::v1::GetMultipartUploadLinkResponse {
+                object: Some(object.to_proto_object()),
+                upload_link: part_link,
+            },
+        ));
     }
 
     async fn complete_multipart_upload(
         &self,
-        request: tonic::Request<services::CompleteMultipartRequest>,
-    ) -> Result<Response<models::Empty>, tonic::Status> {
+        request: tonic::Request<services::v1::CompleteMultipartUploadRequest>,
+    ) -> Result<Response<services::v1::CompleteMultipartUploadResponse>, tonic::Status> {
         let upload_request = request.get_ref();
         self.auth_handler
             .authorize(
@@ -158,6 +163,8 @@ impl<T: Database> ObjectLoad for LoadServer<T> {
             .finish_multipart_upload(upload_request.object_id.as_str(), &upload_request.parts)
             .await?;
 
-        return Ok(Response::new(Empty {}));
+        return Ok(Response::new(
+            services::v1::CompleteMultipartUploadResponse {},
+        ));
     }
 }

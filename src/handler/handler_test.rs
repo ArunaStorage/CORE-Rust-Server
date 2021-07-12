@@ -2,9 +2,9 @@
 mod server_test {
     use std::sync::Arc;
 
-    use scienceobjectsdb_rust_api::sciobjectsdbapi::models::Version;
+    use scienceobjectsdb_rust_api::sciobjectsdbapi::models::v1::Version;
     use scienceobjectsdb_rust_api::sciobjectsdbapi::services;
-    use scienceobjectsdb_rust_api::sciobjectsdbapi::services::ReleaseDatasetVersionRequest;
+    use scienceobjectsdb_rust_api::sciobjectsdbapi::services::v1::ReleaseDatasetVersionRequest;
 
     use crate::handler::common::CommonHandler;
     use crate::models::common_models::DatabaseModel;
@@ -34,7 +34,7 @@ mod server_test {
     #[tokio::test]
     async fn dataset_test() {
         let handler = init_common_handler_for_test().await;
-        let dataset_request = services::CreateDatasetRequest {
+        let dataset_request = services::v1::CreateDatasetRequest {
             ..Default::default()
         };
 
@@ -65,33 +65,33 @@ mod server_test {
     #[tokio::test]
     async fn dataset_version() {
         let handler = init_common_handler_for_test().await;
-        let dataset_request = services::CreateDatasetRequest {
+        let dataset_request = services::v1::CreateDatasetRequest {
             ..Default::default()
         };
         let created_dataset = handler.create_dataset(&dataset_request).await.unwrap();
 
-        let object_group = services::CreateObjectGroupRequest {
+        let object_group = services::v1::CreateObjectGroupRequest {
             dataset_id: created_dataset.id.clone(),
             ..Default::default()
         };
 
         let created_object_group = handler.create_object_group(&object_group).await.unwrap();
 
-        let object1 = services::CreateObjectRequest {
+        let object1 = services::v1::CreateObjectRequest {
             content_len: 3,
             filename: "testfile1.bin".to_string(),
             filetype: "bin".to_string(),
             ..Default::default()
         };
 
-        let object2 = services::CreateObjectRequest {
+        let object2 = services::v1::CreateObjectRequest {
             content_len: 5,
             filename: "testfile2.bin".to_string(),
             filetype: "bin".to_string(),
             ..Default::default()
         };
 
-        let revision_request = services::CreateObjectGroupRevisionRequest {
+        let revision_request = services::v1::CreateObjectGroupRevisionRequest {
             objects: vec![object1, object2],
             ..Default::default()
         };
@@ -147,33 +147,33 @@ mod server_test {
     #[tokio::test]
     async fn dataset_revision() {
         let handler = init_common_handler_for_test().await;
-        let dataset_request = services::CreateDatasetRequest {
+        let dataset_request = services::v1::CreateDatasetRequest {
             ..Default::default()
         };
         let created_dataset = handler.create_dataset(&dataset_request).await.unwrap();
 
-        let object_group = services::CreateObjectGroupRequest {
+        let object_group = services::v1::CreateObjectGroupRequest {
             dataset_id: created_dataset.id.clone(),
             ..Default::default()
         };
 
         let created_object_group = handler.create_object_group(&object_group).await.unwrap();
 
-        let object1 = services::CreateObjectRequest {
+        let object1 = services::v1::CreateObjectRequest {
             content_len: 3,
             filename: "testfile1.bin".to_string(),
             filetype: "bin".to_string(),
             ..Default::default()
         };
 
-        let object2 = services::CreateObjectRequest {
+        let object2 = services::v1::CreateObjectRequest {
             content_len: 5,
             filename: "testfile2.bin".to_string(),
             filetype: "bin".to_string(),
             ..Default::default()
         };
 
-        let revision_request = services::CreateObjectGroupRevisionRequest {
+        let revision_request = services::v1::CreateObjectGroupRevisionRequest {
             objects: vec![object1, object2],
             ..Default::default()
         };

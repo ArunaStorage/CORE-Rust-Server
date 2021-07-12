@@ -1,8 +1,7 @@
 use std::sync::Arc;
 
-use scienceobjectsdb_rust_api::sciobjectsdbapi::models;
-use scienceobjectsdb_rust_api::sciobjectsdbapi::services::dataset_objects_service_server::DatasetObjectsService;
-use scienceobjectsdb_rust_api::sciobjectsdbapi::{models::Empty, services};
+use scienceobjectsdb_rust_api::sciobjectsdbapi::services::v1::dataset_objects_service_server::DatasetObjectsService;
+use scienceobjectsdb_rust_api::sciobjectsdbapi::{services};
 use tonic::Response;
 
 use crate::database::database::Database;
@@ -27,39 +26,35 @@ pub struct ObjectServer<T: Database + 'static> {
 impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
     async fn create_object_group(
         &self,
-        request: tonic::Request<services::CreateObjectGroupWithRevisionRequest>,
-    ) -> Result<Response<services::GetObjectGroupRevisionResponse>, tonic::Status> {
+        request: tonic::Request<services::v1::CreateObjectGroupRequest>,
+    ) -> Result<Response<services::v1::CreateObjectGroupResponse>, tonic::Status> {
         let inner_request = request.get_ref();
-        let object_group_request =
-            util::tonic_error_if_not_exists(&inner_request.object_group, "object_group")?;
-        let revision_request = util::tonic_error_if_not_exists(
-            &inner_request.object_group_version,
-            "object_group_revision",
-        )?;
 
         self.auth_handler
             .authorize(
                 request.metadata(),
                 Resource::Project,
                 Right::Write,
-                object_group_request.dataset_id.clone(),
+                inner_request.dataset_id.clone(),
             )
             .await?;
+
+        let create_object_group_req = &services::v1::CreateObjectGroupRequest {
+            dataset_id: inner_request.dataset_id.clone(),
+            name: inner_request.name.clone(),
+            labels: inner_request.labels.clone(),
+            metadata: inner_request.metadata.clone(),
+            object_group_version: inner_request.object_group_version.clone(),
+        };
 
         let object_group = self
             .handler_wrapper
             .create_handler
-            .create_object_group(object_group_request)
-            .await?;
-        let revision = self
-            .handler_wrapper
-            .create_handler
-            .create_revision_for_group(revision_request, object_group.id.as_str())
+            .create_object_group(create_object_group_req)
             .await?;
 
-        let get_revision_response = services::GetObjectGroupRevisionResponse {
-            object_group: Some(object_group.to_proto()),
-            object_group_revision: Some(revision.to_proto()),
+        let get_revision_response = services::v1::CreateObjectGroupResponse {
+            id: object_group.id,
         };
 
         return Ok(Response::new(get_revision_response));
@@ -67,8 +62,8 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
 
     async fn add_revision_to_object_group(
         &self,
-        request: tonic::Request<services::AddRevisionToObjectGroupRequest>,
-    ) -> Result<Response<services::GetObjectGroupRevisionResponse>, tonic::Status> {
+        request: tonic::Request<services::v1::AddRevisionToObjectGroupRequest>,
+    ) -> Result<Response<services::v1::AddRevisionToObjectGroupResponse>, tonic::Status> {
         let inner_request = request.get_ref();
         self.auth_handler
             .authorize(
@@ -93,7 +88,7 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
             .create_revision_for_group(revision_request, inner_request.object_group_id.as_str())
             .await?;
 
-        let revision_response = services::GetObjectGroupRevisionResponse {
+        let revision_response = services::v1::AddRevisionToObjectGroupResponse {
             object_group: Some(object_group.to_proto()),
             object_group_revision: Some(revision.to_proto()),
         };
@@ -103,8 +98,8 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
 
     async fn get_object_group(
         &self,
-        request: tonic::Request<models::Id>,
-    ) -> Result<Response<services::GetObjectGroupRevisionResponse>, tonic::Status> {
+        request: tonic::Request<services::v1::GetObjectGroupRequest>,
+    ) -> Result<Response<services::v1::GetObjectGroupResponse>, tonic::Status> {
         let inner_request = request.get_ref();
         self.auth_handler
             .authorize(
@@ -121,15 +116,8 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
             .read_entry_by_id::<ObjectGroup>(inner_request.id.as_str())
             .await?;
 
-        let revision = self
-            .handler_wrapper
-            .read_handler
-            .read_revision(object_group.revision_counter)
-            .await?;
-
-        let object_group_revision_response = services::GetObjectGroupRevisionResponse {
+        let object_group_revision_response = services::v1::GetObjectGroupResponse {
             object_group: Some(object_group.to_proto()),
-            object_group_revision: Some(revision.to_proto()),
         };
 
         return Ok(Response::new(object_group_revision_response));
@@ -137,28 +125,28 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
 
     async fn get_current_object_group_revision(
         &self,
-        _request: tonic::Request<models::Id>,
-    ) -> Result<Response<services::GetObjectGroupRevisionResponse>, tonic::Status> {
+        _request: tonic::Request<services::v1::GetCurrentObjectGroupRevisionRequest>,
+    ) -> Result<Response<services::v1::GetCurrentObjectGroupRevisionResponse>, tonic::Status> {
         unimplemented!();
     }
 
     async fn get_object_group_revision(
         &self,
-        request: tonic::Request<services::GetObjectGroupRevisionRequest>,
-    ) -> Result<Response<models::ObjectGroupRevision>, tonic::Status> {
+        request: tonic::Request<services::v1::GetObjectGroupRevisionRequest>,
+    ) -> Result<Response<services::v1::GetObjectGroupRevisionResponse>, tonic::Status> {
         let inner_request = request.get_ref();
 
         let revision_result = match inner_request.reference_type() {
-            services::ObjectGroupRevisionReferenceType::Version => Err(
+            services::v1::ObjectGroupRevisionReferenceType::Version => Err(
                 tonic::Status::unimplemented("version revision type currently not implemented"),
             ),
-            services::ObjectGroupRevisionReferenceType::Revision => {
+            services::v1::ObjectGroupRevisionReferenceType::Revision => {
                 self.handler_wrapper
                     .read_handler
                     .read_revision(inner_request.revision)
                     .await
             }
-            services::ObjectGroupRevisionReferenceType::Id => {
+            services::v1::ObjectGroupRevisionReferenceType::Id => {
                 self.handler_wrapper
                     .read_handler
                     .read_entry_by_id(inner_request.id.as_str())
@@ -177,13 +165,18 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
             )
             .await?;
 
-        return Ok(Response::new(revision.to_proto()));
+        let response = services::v1::GetObjectGroupRevisionResponse {
+            object_group_revision: Some(revision.to_proto()),
+            ..Default::default()
+        };
+
+        return Ok(Response::new(response));
     }
 
     async fn get_object_group_revisions(
         &self,
-        request: tonic::Request<models::Id>,
-    ) -> Result<Response<services::ObjectGroupRevisions>, tonic::Status> {
+        request: tonic::Request<services::v1::GetObjectGroupRevisionsRequest>,
+    ) -> Result<Response<services::v1::GetObjectGroupRevisionsResponse>, tonic::Status> {
         let inner_request = request.get_ref();
         self.auth_handler
             .authorize(
@@ -203,7 +196,7 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
             .map(|x| x.to_proto())
             .collect();
 
-        let response = services::ObjectGroupRevisions {
+        let response = services::v1::GetObjectGroupRevisionsResponse {
             object_group_revision: proto_revision,
         };
 
@@ -212,16 +205,16 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
 
     async fn finish_object_upload(
         &self,
-        request: tonic::Request<models::Id>,
-    ) -> Result<Response<Empty>, tonic::Status> {
+        request: tonic::Request<services::v1::FinishObjectUploadRequest>,
+    ) -> Result<Response<services::v1::FinishObjectUploadResponse>, tonic::Status> {
         let _inner_request = request.get_ref();
         return Err(tonic::Status::unimplemented("not implemented"));
     }
 
     async fn delete_object_group(
         &self,
-        request: tonic::Request<models::Id>,
-    ) -> Result<Response<Empty>, tonic::Status> {
+        request: tonic::Request<services::v1::DeleteObjectGroupRequest>,
+    ) -> Result<Response<services::v1::DeleteObjectGroupResponse>, tonic::Status> {
         let inner_request = request.get_ref();
         self.auth_handler
             .authorize(
@@ -237,13 +230,13 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
             .delete_object_group(inner_request.id.clone())
             .await?;
 
-        return Ok(Response::new(models::Empty {}));
+        return Ok(Response::new(services::v1::DeleteObjectGroupResponse {}));
     }
 
     async fn delete_object_group_revision(
         &self,
-        request: tonic::Request<models::Id>,
-    ) -> Result<Response<Empty>, tonic::Status> {
+        request: tonic::Request<services::v1::DeleteObjectGroupRevisionRequest>,
+    ) -> Result<Response<services::v1::DeleteObjectGroupRevisionResponse>, tonic::Status> {
         let inner_request = request.get_ref();
         self.auth_handler
             .authorize(
@@ -259,6 +252,8 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
             .delete_object_revision(inner_request.id.clone())
             .await?;
 
-        return Ok(Response::new(models::Empty {}));
+        return Ok(Response::new(
+            services::v1::DeleteObjectGroupRevisionResponse {},
+        ));
     }
 }

@@ -41,8 +41,8 @@ impl APIToken {
         Ok(dataset_entry)
     }
 
-    pub fn to_proto(&self) -> models::ApiToken {
-        let api_token = models::ApiToken {
+    pub fn to_proto(&self) -> models::v1::ApiToken {
+        let api_token = models::v1::ApiToken {
             id: self.id.clone(),
             rights: to_proto_rights(&self.rights),
             token: self.token.clone(),

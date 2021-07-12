@@ -3,9 +3,8 @@ use std::sync::Arc;
 use crate::database::database::Database;
 use crate::handler::common::HandlerWrapper;
 
-use scienceobjectsdb_rust_api::sciobjectsdbapi::models::{self};
-use scienceobjectsdb_rust_api::sciobjectsdbapi::services::project_api_server::ProjectApi;
-use scienceobjectsdb_rust_api::sciobjectsdbapi::{models::Project, services};
+use scienceobjectsdb_rust_api::sciobjectsdbapi::services;
+use scienceobjectsdb_rust_api::sciobjectsdbapi::services::v1::project_service_server::ProjectService;
 use tonic::Response;
 
 use crate::{
@@ -13,7 +12,6 @@ use crate::{
     models::{
         common_models::{Resource, Right},
         dataset_model::DatasetEntry,
-        project_model::ProjectEntry,
     },
 };
 
@@ -25,11 +23,11 @@ pub struct ProjectServer<T: Database + 'static> {
 }
 
 #[tonic::async_trait]
-impl<T: Database> ProjectApi for ProjectServer<T> {
+impl<T: Database> ProjectService for ProjectServer<T> {
     async fn create_project(
         &self,
-        request: tonic::Request<services::CreateProjectRequest>,
-    ) -> Result<tonic::Response<models::Project>, tonic::Status> {
+        request: tonic::Request<services::v1::CreateProjectRequest>,
+    ) -> Result<tonic::Response<services::v1::CreateProjectResponse>, tonic::Status> {
         let user_id = self.auth_handler.user_id(request.metadata()).await?;
 
         let project = self
@@ -38,13 +36,17 @@ impl<T: Database> ProjectApi for ProjectServer<T> {
             .create_project(&request.into_inner(), user_id)
             .await?;
 
-        Ok(Response::new(project.to_proto_project()))
+        let response = services::v1::CreateProjectResponse {
+            project: Some(project.to_proto_project()),
+        };
+
+        Ok(Response::new(response))
     }
 
     async fn add_user_to_project(
         &self,
-        request: tonic::Request<services::AddUserToProjectRequest>,
-    ) -> Result<tonic::Response<models::Project>, tonic::Status> {
+        request: tonic::Request<services::v1::AddUserToProjectRequest>,
+    ) -> Result<tonic::Response<services::v1::AddUserToProjectResponse>, tonic::Status> {
         let add_user = request.get_ref();
         self.auth_handler
             .authorize(
@@ -59,19 +61,16 @@ impl<T: Database> ProjectApi for ProjectServer<T> {
             .update_handler
             .add_user_to_project(add_user)
             .await?;
-        let project = self
-            .handler
-            .read_handler
-            .read_entry_by_id::<ProjectEntry>(add_user.project_id.as_str())
-            .await?;
 
-        return Ok(tonic::Response::new(project.to_proto_project()));
+        let response = services::v1::AddUserToProjectResponse {};
+
+        return Ok(tonic::Response::new(response));
     }
 
     async fn get_project_datasets(
         &self,
-        request: tonic::Request<models::Id>,
-    ) -> Result<tonic::Response<services::DatasetList>, tonic::Status> {
+        request: tonic::Request<services::v1::GetProjectDatasetsRequest>,
+    ) -> Result<tonic::Response<services::v1::GetProjectDatasetsResponse>, tonic::Status> {
         let get_request = request.get_ref();
         self.auth_handler
             .authorize(
@@ -89,7 +88,7 @@ impl<T: Database> ProjectApi for ProjectServer<T> {
             .await?;
         let proto_datasets = datasets.into_iter().map(|x| x.to_proto_dataset()).collect();
 
-        let dataset_list = services::DatasetList {
+        let dataset_list = services::v1::GetProjectDatasetsResponse {
             dataset: proto_datasets,
             ..Default::default()
         };
@@ -99,8 +98,8 @@ impl<T: Database> ProjectApi for ProjectServer<T> {
 
     async fn get_user_projects(
         &self,
-        request: tonic::Request<models::Empty>,
-    ) -> Result<tonic::Response<services::ProjectList>, tonic::Status> {
+        request: tonic::Request<services::v1::GetUserProjectsRequest>,
+    ) -> Result<tonic::Response<services::v1::GetUserProjectsResponse>, tonic::Status> {
         let _get_request = request.get_ref();
         let id = self.auth_handler.user_id(request.metadata()).await?;
 
@@ -111,7 +110,7 @@ impl<T: Database> ProjectApi for ProjectServer<T> {
             .await?;
         let proto_projects = projects.into_iter().map(|x| x.to_proto_project()).collect();
 
-        let project_list = services::ProjectList {
+        let project_list = services::v1::GetUserProjectsResponse {
             projects: proto_projects,
         };
 
@@ -120,8 +119,8 @@ impl<T: Database> ProjectApi for ProjectServer<T> {
 
     async fn delete_project(
         &self,
-        request: tonic::Request<models::Id>,
-    ) -> Result<tonic::Response<models::Empty>, tonic::Status> {
+        request: tonic::Request<services::v1::DeleteProjectRequest>,
+    ) -> Result<tonic::Response<services::v1::DeleteProjectResponse>, tonic::Status> {
         let _inner_request = request.get_ref();
 
         return Err(tonic::Status::unimplemented("not implemented"));
@@ -129,16 +128,16 @@ impl<T: Database> ProjectApi for ProjectServer<T> {
 
     async fn get_project(
         &self,
-        request: tonic::Request<models::Id>,
-    ) -> Result<Response<Project>, tonic::Status> {
+        request: tonic::Request<services::v1::GetProjectRequest>,
+    ) -> Result<Response<services::v1::GetProjectResponse>, tonic::Status> {
         let _inner_request = request.get_ref();
         return Err(tonic::Status::unimplemented("not implemented"));
     }
 
     async fn create_api_token(
         &self,
-        request: tonic::Request<models::Id>,
-    ) -> Result<Response<models::ApiToken>, tonic::Status> {
+        request: tonic::Request<services::v1::CreateApiTokenRequest>,
+    ) -> Result<Response<services::v1::CreateApiTokenResponse>, tonic::Status> {
         let get_request = request.get_ref();
         self.auth_handler
             .authorize(
@@ -158,13 +157,17 @@ impl<T: Database> ProjectApi for ProjectServer<T> {
             .create_api_token(user_id.as_str(), rights, get_request.id.as_str())
             .await?;
 
-        return Ok(Response::new(inserted_token.to_proto()));
+        let response = services::v1::CreateApiTokenResponse {
+            token: Some(inserted_token.to_proto()),
+        };
+
+        return Ok(Response::new(response));
     }
 
     async fn get_api_token(
         &self,
-        request: tonic::Request<models::Empty>,
-    ) -> Result<Response<services::ApiTokenList>, tonic::Status> {
+        request: tonic::Request<services::v1::GetApiTokenRequest>,
+    ) -> Result<Response<services::v1::GetApiTokenResponse>, tonic::Status> {
         let user_id = self.auth_handler.user_id(request.metadata()).await?;
 
         let proto_token = self
@@ -176,15 +179,15 @@ impl<T: Database> ProjectApi for ProjectServer<T> {
             .map(|x| x.to_proto())
             .collect();
 
-        let reponse_token_list = services::ApiTokenList { token: proto_token };
+        let reponse_token_list = services::v1::GetApiTokenResponse { token: proto_token };
 
         return Ok(Response::new(reponse_token_list));
     }
 
     async fn delete_api_token(
         &self,
-        request: tonic::Request<models::Id>,
-    ) -> Result<Response<models::Empty>, tonic::Status> {
+        request: tonic::Request<services::v1::DeleteApiTokenRequest>,
+    ) -> Result<Response<services::v1::DeleteApiTokenResponse>, tonic::Status> {
         let inner_request = request.get_ref();
         self.auth_handler
             .authorize(

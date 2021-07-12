@@ -1,6 +1,6 @@
-use bson::{doc, to_bson, to_document};
+use bson::{doc, to_bson};
 use log::error;
-use scienceobjectsdb_rust_api::sciobjectsdbapi::services::AddUserToProjectRequest;
+use scienceobjectsdb_rust_api::sciobjectsdbapi::services::v1::AddUserToProjectRequest;
 
 use crate::{
     database::database::Database,

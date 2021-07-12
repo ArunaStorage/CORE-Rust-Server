@@ -34,7 +34,7 @@ impl DatabaseModel<'_> for DatasetEntry {
 
 impl DatasetEntry {
     pub fn new_from_proto_create(
-        request: &services::CreateDatasetRequest,
+        request: &services::v1::CreateDatasetRequest,
     ) -> Result<Self, tonic::Status> {
         let uuid = uuid::Uuid::new_v4();
         let timestamp = Utc::now();
@@ -54,8 +54,8 @@ impl DatasetEntry {
         Ok(dataset_entry)
     }
 
-    pub fn to_proto_dataset(&self) -> models::Dataset {
-        let dataset = models::Dataset {
+    pub fn to_proto_dataset(&self) -> models::v1::Dataset {
+        let dataset = models::v1::Dataset {
             id: self.id.to_string(),
             name: self.name.to_string(),
             created: None,
