@@ -1,3 +1,4 @@
+use std::convert::TryFrom;
 use std::time::SystemTime;
 
 use chrono::DateTime;
@@ -64,7 +65,7 @@ impl DatasetVersion {
 
     pub fn to_proto(&self) -> models::DatasetVersion {
         let system_time: SystemTime = self.created.into();
-        let timestamp = Timestamp::from(system_time);
+        let timestamp = Timestamp::try_from(system_time).unwrap();
 
         let proto_version = models::DatasetVersion {
             id: self.id.clone(),

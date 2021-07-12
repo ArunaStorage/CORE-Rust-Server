@@ -10,6 +10,7 @@ services:
       dockerfile: test/Dockerfile
     entrypoint: >
       /bin/sh -c "
+      sleep 5; 
       /bin/mc config host add myminio http://minio:9000 minioadmin minioadmin;
       /bin/mc mb myminio/test-bucket;
       cargo test

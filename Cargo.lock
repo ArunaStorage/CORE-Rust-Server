@@ -33,9 +33,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.41"
+version = "1.0.42"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "15af2628f6890fe2609a3b91bef4c83450512802e59489f9c1cb1fa5df064a61"
+checksum = "595d3cfa7a60d4555cb5067b99f07142a08ea778de5cf993f7b75c7d8fabc486"
 
 [[package]]
 name = "arrayvec"
@@ -688,9 +688,9 @@ checksum = "9a3a5bfb195931eeb336b2a7b4d761daec841b97f947d34394601737a7bba5e4"
 
 [[package]]
 name = "hyper"
-version = "0.14.9"
+version = "0.14.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "07d6baa1b441335f3ce5098ac421fb6547c46dda735ca1bc6d0153c838f9dd83"
+checksum = "7728a72c4c7d72665fde02204bcbd93b247721025b222ef78606f14513e0fd03"
 dependencies = [
  "bytes",
  "futures-channel",
@@ -723,6 +723,18 @@ dependencies = [
  "tokio",
  "tokio-rustls",
  "webpki",
+]
+
+[[package]]
+name = "hyper-timeout"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bbb958482e8c7be4bc3cf272a766a2b0bf1a6755e7a6ae777f017a31d11b13b1"
+dependencies = [
+ "hyper",
+ "pin-project-lite",
+ "tokio",
+ "tokio-io-timeout",
 ]
 
 [[package]]
@@ -767,9 +779,9 @@ dependencies = [
 
 [[package]]
 name = "instant"
-version = "0.1.9"
+version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61124eeebbd69b8190558df225adf7e4caafce0d743919e5d6b19652314ec5ec"
+checksum = "bee0328b1209d157ef001c94dd85b4f8f64139adb0eac2659f4b08382b2f474d"
 dependencies = [
  "cfg-if",
 ]
@@ -794,9 +806,9 @@ checksum = "68f2d64f2edebec4ce84ad108148e67e1064789bee435edc5b60ad398714a3a9"
 
 [[package]]
 name = "itertools"
-version = "0.9.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "284f18f85651fe11e8a991b2adb42cb078325c996ed026d994719efcfca1d54b"
+checksum = "69ddb889f9d0d08a67338271fa9b62996bc788c7796a5c18cf057420aaed5eaf"
 dependencies = [
  "either",
 ]
@@ -837,9 +849,9 @@ dependencies = [
 
 [[package]]
 name = "libc"
-version = "0.2.97"
+version = "0.2.98"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "12b8adadd720df158f4d70dfe7ccc6adb0472d7c55ca83445f6a5ab3e36f8fb6"
+checksum = "320cfe77175da3a483efed4bc0adc1968ca050b098ce4f2f1c13a56626128790"
 
 [[package]]
 name = "linked-hash-map"
@@ -1239,9 +1251,9 @@ dependencies = [
 
 [[package]]
 name = "prost"
-version = "0.7.0"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9e6984d2f1a23009bd270b8bb56d0926810a3d483f59c987d77969e9d8e840b2"
+checksum = "de5e2533f59d08fcf364fd374ebda0692a70bd6d7e66ef97f306f45c6c5d8020"
 dependencies = [
  "bytes",
  "prost-derive",
@@ -1249,9 +1261,9 @@ dependencies = [
 
 [[package]]
 name = "prost-build"
-version = "0.7.0"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "32d3ebd75ac2679c2af3a92246639f9fcc8a442ee420719cc4fe195b98dd5fa3"
+checksum = "355f634b43cdd80724ee7848f95770e7e70eefa6dcf14fea676216573b8fd603"
 dependencies = [
  "bytes",
  "heck",
@@ -1267,9 +1279,9 @@ dependencies = [
 
 [[package]]
 name = "prost-derive"
-version = "0.7.0"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "169a15f3008ecb5160cba7d37bcd690a7601b6d30cfb87a117d45e59d52af5d4"
+checksum = "600d2f334aa05acb02a755e217ef1ab6dea4d51b58b7846588b747edec04efba"
 dependencies = [
  "anyhow",
  "itertools",
@@ -1280,9 +1292,9 @@ dependencies = [
 
 [[package]]
 name = "prost-types"
-version = "0.7.0"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b518d7cdd93dab1d1122cf07fa9a60771836c668dde9d9e2a139f957f0d9f1bb"
+checksum = "603bbd6394701d13f3f25aada59c7de9d35a6a5887cfc156181234a44002771b"
 dependencies = [
  "bytes",
  "prost",
@@ -1627,7 +1639,7 @@ dependencies = [
 [[package]]
 name = "scienceobjectsdb_rust_api"
 version = "0.1.0"
-source = "git+https://github.com/ScienceObjectsDB/rust-api?branch=main#f2ab3bddcbdca5addbd8c612b40c288da41383ce"
+source = "git+https://github.com/ScienceObjectsDB/rust-api?branch=main#21c257a3236c1bb9c24120825e567b35877fddb9"
 dependencies = [
  "prost",
  "prost-derive",
@@ -2117,6 +2129,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "tokio-io-timeout"
+version = "1.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "90c49f106be240de154571dd31fbe48acb10ba6c6dd6f6517ad603abffa42de9"
+dependencies = [
+ "pin-project-lite",
+ "tokio",
+]
+
+[[package]]
 name = "tokio-macros"
 version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2184,9 +2206,9 @@ dependencies = [
 
 [[package]]
 name = "tonic"
-version = "0.4.3"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ac42cd97ac6bd2339af5bcabf105540e21e45636ec6fa6aae5e85d44db31be0"
+checksum = "b584f064fdfc50017ec39162d5aebce49912f1eb16fd128e04b7f4ce4907c7e5"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -2198,6 +2220,7 @@ dependencies = [
  "http",
  "http-body",
  "hyper",
+ "hyper-timeout",
  "percent-encoding",
  "pin-project",
  "prost",
@@ -2206,6 +2229,7 @@ dependencies = [
  "tokio-stream",
  "tokio-util",
  "tower",
+ "tower-layer",
  "tower-service",
  "tracing",
  "tracing-futures",
@@ -2213,9 +2237,9 @@ dependencies = [
 
 [[package]]
 name = "tonic-build"
-version = "0.4.2"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c695de27302f4697191dda1c7178131a8cb805463dda02864acb80fe1322fdcf"
+checksum = "25db9a497663a9a779693ef67b6e6aef8345b3d3ff8d50ef92eae6c88cb1e386"
 dependencies = [
  "proc-macro2",
  "prost-build",
