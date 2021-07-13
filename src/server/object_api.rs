@@ -53,8 +53,14 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
             .create_object_group(create_object_group_req)
             .await?;
 
+        let revision_id = match &inner_request.object_group_version {
+            Some(request) => self.handler_wrapper.create_handler.create_revision_for_group(request, object_group.id.as_str()).await?.id,
+            None => "".to_string(),
+        };
+
         let get_revision_response = services::v1::CreateObjectGroupResponse {
-            id: object_group.id,
+            object_group_id: object_group.id,
+            revision_id: revision_id,
         };
 
         return Ok(Response::new(get_revision_response));
@@ -89,8 +95,8 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
             .await?;
 
         let revision_response = services::v1::AddRevisionToObjectGroupResponse {
-            object_group: Some(object_group.to_proto()),
-            object_group_revision: Some(revision.to_proto()),
+            revision_id: revision.id,
+            revision_number: revision.revision as u64
         };
 
         return Ok(Response::new(revision_response));

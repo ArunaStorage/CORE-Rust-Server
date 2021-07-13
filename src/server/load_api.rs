@@ -44,7 +44,6 @@ impl<T: Database> ObjectLoadService for LoadServer<T> {
         Ok(tonic::Response::new(
             services::v1::CreateUploadLinkResponse {
                 upload_link: link,
-                object: Some(object.to_proto_object()),
             },
         ))
     }

@@ -111,7 +111,7 @@ mod server_test {
             panic!("wrong number of projects found for testuser")
         };
 
-        return project.project.unwrap().id.clone();
+        return project.project;
     }
 
     async fn dataset_test(test_project_id: String, endpoints: &TestEndpointStruct) -> String {
@@ -164,7 +164,7 @@ mod server_test {
             .unwrap()
             .into_inner();
 
-        let object_group_id = create_object_group_response.id.clone();
+        let object_group_id = create_object_group_response.object_group_id;
 
         let _object_group = endpoint
             .object_handler
@@ -283,13 +283,13 @@ mod server_test {
             .await?;
         let added_revision_ref = added_revision.get_ref();
 
-        let object_id = added_revision_ref
-            .object_group_revision
-            .clone()
-            .unwrap()
-            .objects[0]
-            .id
-            .clone();
+        let revision = endpoints.object_handler.get_object_group_revision(Request::new(services::v1::GetObjectGroupRevisionRequest{
+            id: added_revision_ref.revision_id.clone(),
+            reference_type: services::v1::ObjectGroupRevisionReferenceType::Id as i32,
+            ..Default::default()
+        })).await.unwrap();
+
+        let object_id = revision.into_inner().object_group_revision.unwrap().objects[0].id.clone();
 
         load_test(object_id, endpoints, TEST_DATA_REV2).await;
 

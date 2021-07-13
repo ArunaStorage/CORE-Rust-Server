@@ -74,7 +74,7 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
             .await?;
 
         let response = services::v1::GetDatasetResponse {
-            dataset: vec![dataset.to_proto_dataset()],
+            dataset: Some(dataset.to_proto_dataset()),
         };
 
         return Ok(Response::new(response));
@@ -207,7 +207,10 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
             value?
         }
 
-        let response = services::v1::ReleaseDatasetVersionResponse {};
+        let version = self.handler_wrapper.create_handler.create_datatset_version(inner_request).await?;
+        let response = services::v1::ReleaseDatasetVersionResponse{
+            id: version.id,
+        };
 
         return Ok(Response::new(response));
     }
