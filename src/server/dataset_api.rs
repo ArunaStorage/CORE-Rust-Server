@@ -61,7 +61,7 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
         self.auth_handler
             .authorize(
                 request.metadata(),
-                Resource::Project,
+                Resource::Dataset,
                 Right::Read,
                 inner_request.id.clone(),
             )

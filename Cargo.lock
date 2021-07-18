@@ -1639,7 +1639,7 @@ dependencies = [
 [[package]]
 name = "scienceobjectsdb_rust_api"
 version = "0.1.0"
-source = "git+https://github.com/ScienceObjectsDB/rust-api?branch=main#b3086cdcac9b0ab397c3eab038f303be4079dcbc"
+source = "git+https://github.com/ScienceObjectsDB/rust-api?branch=main#452782ef353a917b01ba1e1d56bbfb107a4ddee1"
 dependencies = [
  "prost",
  "prost-derive",
@@ -2237,9 +2237,9 @@ dependencies = [
 
 [[package]]
 name = "tonic-build"
-version = "0.5.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "25db9a497663a9a779693ef67b6e6aef8345b3d3ff8d50ef92eae6c88cb1e386"
+checksum = "d12faebbe071b06f486be82cc9318350814fdd07fcb28f3690840cd770599283"
 dependencies = [
  "proc-macro2",
  "prost-build",
