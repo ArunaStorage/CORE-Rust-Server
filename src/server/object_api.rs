@@ -33,7 +33,7 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
         self.auth_handler
             .authorize(
                 request.metadata(),
-                Resource::Project,
+                Resource::Dataset,
                 Right::Write,
                 inner_request.dataset_id.clone(),
             )
@@ -83,11 +83,6 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
         let revision_request =
             util::tonic_error_if_not_exists(&inner_request.group_version, "group_version")?;
 
-        let object_group = self
-            .handler_wrapper
-            .read_handler
-            .read_entry_by_id::<ObjectGroup>(inner_request.object_group_id.as_str())
-            .await?;
         let revision = self
             .handler_wrapper
             .create_handler

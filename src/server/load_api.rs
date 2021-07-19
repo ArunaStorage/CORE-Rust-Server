@@ -35,12 +35,7 @@ impl<T: Database> ObjectLoadService for LoadServer<T> {
             .load_handler
             .create_upload_link(upload_object.id.as_str())
             .await?;
-        let object = self
-            .wrapper
-            .read_handler
-            .find_object(upload_object.id.as_str())
-            .await?;
-
+            
         Ok(tonic::Response::new(
             services::v1::CreateUploadLinkResponse {
                 upload_link: link,

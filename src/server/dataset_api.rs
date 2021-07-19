@@ -136,13 +136,6 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
         return Ok(Response::new(object_groups_list));
     }
 
-    async fn get_current_object_group_revisions(
-        &self,
-        _request: tonic::Request<services::v1::GetCurrentObjectGroupRevisionsRequest>,
-    ) -> Result<Response<services::v1::GetCurrentObjectGroupRevisionsResponse>, tonic::Status> {
-        unimplemented!()
-    }
-
     async fn update_dataset_field(
         &self,
         request: tonic::Request<services::v1::UpdateDatasetFieldRequest>,
@@ -278,5 +271,12 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
             .await?;
 
         return Ok(Response::new(services::v1::DeleteDatasetVersionResponse {}));
+    }
+
+    async fn get_current_object_group_revisions(
+            &self,
+            request: tonic::Request<services::v1::GetCurrentObjectGroupRevisionsRequest>,
+        ) -> Result<tonic::Response<services::v1::GetCurrentObjectGroupRevisionsResponse>, tonic::Status> {
+        todo!()
     }
 }
