@@ -150,7 +150,7 @@ mod server_test {
         let create_object_group_request = Request::new(services::v1::CreateObjectGroupRequest {
             dataset_id: test_dataset_id,
             name: "test_group".to_string(),
-            object_group_version: Some(services::v1::CreateObjectGroupRevisionRequest {
+            object_group_revision: Some(services::v1::CreateObjectGroupRevisionRequest {
                 objects: vec![create_object_request],
                 ..Default::default()
             }),
@@ -274,7 +274,7 @@ mod server_test {
 
         let add_revision_request = services::v1::AddRevisionToObjectGroupRequest {
             object_group_id: object_group_id.clone(),
-            group_version: Some(create_revision),
+            group_revison: Some(create_revision),
         };
 
         let added_revision = endpoints

@@ -44,7 +44,7 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
             name: inner_request.name.clone(),
             labels: inner_request.labels.clone(),
             metadata: inner_request.metadata.clone(),
-            object_group_version: inner_request.object_group_version.clone(),
+            object_group_revision: inner_request.object_group_revision.clone(),
         };
 
         let object_group = self
@@ -53,7 +53,7 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
             .create_object_group(create_object_group_req)
             .await?;
 
-        let revision_id = match &inner_request.object_group_version {
+        let revision_id = match &inner_request.object_group_revision {
             Some(request) => self.handler_wrapper.create_handler.create_revision_for_group(request, object_group.id.as_str()).await?.id,
             None => "".to_string(),
         };
@@ -81,7 +81,7 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
             .await?;
 
         let revision_request =
-            util::tonic_error_if_not_exists(&inner_request.group_version, "group_version")?;
+            util::tonic_error_if_not_exists(&inner_request.group_revison, "group_version")?;
 
         let revision = self
             .handler_wrapper

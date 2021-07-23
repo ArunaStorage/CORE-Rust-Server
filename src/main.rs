@@ -47,7 +47,7 @@ fn conf() {
 
     let conf_file = cli
         .value_of("config")
-        .unwrap_or("resources/test/config.yaml");
+        .unwrap_or("resources/local/config.yaml");
 
     {
         SETTINGS

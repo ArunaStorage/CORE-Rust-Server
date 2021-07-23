@@ -319,6 +319,7 @@ impl<T: Database> AuthHandler for ProjectAuthzHandler<T> {
             }
         };
 
+
         let query = doc! {
             "token": token
         };
