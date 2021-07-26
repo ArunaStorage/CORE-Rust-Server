@@ -128,9 +128,9 @@ impl<T: Database> ProjectAuthzHandler<T> {
             "id": &id,
         };
 
-        let dataset_group: ObjectGroup = self.database_handler.find_one_by_key(query).await?;
+        let object_group: ObjectGroup = self.database_handler.find_one_by_key(query).await?;
 
-        return self.project_id_of_dataset(dataset_group.id.clone()).await;
+        return self.project_id_of_dataset(object_group.dataset_id.clone()).await;
     }
 
     async fn project_id_of_object(&self, id: String) -> Result<String, tonic::Status> {
@@ -164,11 +164,11 @@ impl<T: Database> ProjectAuthzHandler<T> {
             "id": &id,
         };
 
-        let object_groups_version: ObjectGroupRevision =
+        let object_groups_revision: ObjectGroupRevision =
             self.database_handler.find_one_by_key(query).await?;
 
         let project_id = self
-            .project_id_of_dataset(object_groups_version.datasete_id)
+            .project_id_of_dataset(object_groups_revision.datasete_id)
             .await?;
         Ok(project_id)
     }

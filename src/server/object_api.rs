@@ -29,7 +29,6 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
         request: tonic::Request<services::v1::CreateObjectGroupRequest>,
     ) -> Result<Response<services::v1::CreateObjectGroupResponse>, tonic::Status> {
         let inner_request = request.get_ref();
-
         self.auth_handler
             .authorize(
                 request.metadata(),
