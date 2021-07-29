@@ -417,7 +417,7 @@ impl Database for MongoHandler {
 
         let csr = match self
             .collection::<T, Document>()
-            .find_one(query, filter_options)
+            .find_one(query.clone(), filter_options)
             .await
         {
             Ok(value) => value,
@@ -433,8 +433,8 @@ impl Database for MongoHandler {
             Some(value) => T::new_from_document(value)?,
             None => {
                 return Err(tonic::Status::not_found(format!(
-                    "could not find requested document. type: {}",
-                    T::get_model_name()?
+                    "could not find requested document. type: {} with query {}",
+                    T::get_model_name()?, query.clone().to_string()
                 )))
             }
         };

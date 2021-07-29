@@ -125,9 +125,27 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
 
     async fn get_current_object_group_revision(
         &self,
-        _request: tonic::Request<services::v1::GetCurrentObjectGroupRevisionRequest>,
+        request: tonic::Request<services::v1::GetCurrentObjectGroupRevisionRequest>,
     ) -> Result<Response<services::v1::GetCurrentObjectGroupRevisionResponse>, tonic::Status> {
-        unimplemented!();
+        let inner_request = request.get_ref();
+        self.auth_handler
+            .authorize(
+                request.metadata(),
+                Resource::ObjectGroup,
+                Right::Read,
+                inner_request.id.clone(),
+            )
+            .await?;
+
+        let revision = self.handler_wrapper.read_handler.read_current_revision(inner_request.id.as_str()).await?;
+
+        let response = services::v1::GetCurrentObjectGroupRevisionResponse{
+            object_group: None,
+            object_group_revision: Some(revision.to_proto())
+        };
+        
+        return Ok(Response::new(response))
+        
     }
 
     async fn get_object_group_revision(
@@ -143,7 +161,7 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
             services::v1::ObjectGroupRevisionReferenceType::Revision => {
                 self.handler_wrapper
                     .read_handler
-                    .read_revision(inner_request.revision)
+                    .read_revision("foo", inner_request.revision)
                     .await
             }
             services::v1::ObjectGroupRevisionReferenceType::Id => {

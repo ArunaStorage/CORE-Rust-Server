@@ -15,6 +15,9 @@ use std::sync::RwLock;
 use clap::{App, Arg};
 use server::server::start_server;
 
+
+use std::io::Write;
+
 lazy_static! {
     static ref SETTINGS: RwLock<Config> = RwLock::new(Config::default());
 }
@@ -25,7 +28,19 @@ type ResultWrapper<T> = std::result::Result<T, Box<dyn std::error::Error + Send 
 async fn main() -> ResultWrapper<()> {
     conf();
 
-    env_logger::init();
+    env_logger::Builder::new()
+    .format(|buf, record| {
+        writeln!(
+            buf,
+            "{}:{} {} [{}] - {}",
+            record.file().unwrap_or("unknown"),
+            record.line().unwrap_or(0),
+            chrono::Local::now().format("%Y-%m-%dT%H:%M:%S"),
+            record.level(),
+            record.args()
+        )
+    })
+    .init();
 
     start_server().await
 }

@@ -1,14 +1,6 @@
 use bson::doc;
 
-use crate::{
-    database::database::Database,
-    models::{
-        apitoken::APIToken,
-        common_models::DatabaseModel,
-        dataset_object_group::{DatasetObject, ObjectGroupRevision},
-        project_model::ProjectEntry,
-    },
-};
+use crate::{database::database::Database, models::{apitoken::APIToken, common_models::DatabaseModel, dataset_object_group::{DatasetObject, ObjectGroup, ObjectGroupRevision}, project_model::ProjectEntry}};
 
 use super::common::CommonHandler;
 
@@ -79,11 +71,17 @@ where
         return self.database_client.find_object(id).await;
     }
 
-    pub async fn read_revision(&self, revision: i64) -> Result<ObjectGroupRevision, tonic::Status> {
+    pub async fn read_revision(&self, object_group_id: &str, revision: i64) -> Result<ObjectGroupRevision, tonic::Status> {
         let query = doc! {
+            "object_group_id": object_group_id,
             "revision": revision
         };
 
         return self.database_client.find_one_by_key(query).await;
+    }
+
+    pub async fn read_current_revision(&self, object_group_id: &str) -> Result<ObjectGroupRevision, tonic::Status> {
+        let object_group = self.read_entry_by_id::<ObjectGroup>(object_group_id).await?;
+        return self.read_revision(object_group_id, object_group.revision_counter-1).await;
     }
 }

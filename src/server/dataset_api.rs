@@ -275,7 +275,7 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
 
     async fn get_current_object_group_revisions(
             &self,
-            request: tonic::Request<services::v1::GetCurrentObjectGroupRevisionsRequest>,
+            _request: tonic::Request<services::v1::GetCurrentObjectGroupRevisionsRequest>,
         ) -> Result<tonic::Response<services::v1::GetCurrentObjectGroupRevisionsResponse>, tonic::Status> {
         todo!()
     }
