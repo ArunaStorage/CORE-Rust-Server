@@ -1,6 +1,6 @@
 use std::{error::Error, fmt, sync::Arc};
 
-use log::{error};
+use log::error;
 use mongodb::bson::doc;
 use std::collections::HashSet;
 use tonic::metadata::MetadataMap;
@@ -130,7 +130,9 @@ impl<T: Database> ProjectAuthzHandler<T> {
 
         let object_group: ObjectGroup = self.database_handler.find_one_by_key(query).await?;
 
-        return self.project_id_of_dataset(object_group.dataset_id.clone()).await;
+        return self
+            .project_id_of_dataset(object_group.dataset_id.clone())
+            .await;
     }
 
     async fn project_id_of_object(&self, id: String) -> Result<String, tonic::Status> {
@@ -140,8 +142,10 @@ impl<T: Database> ProjectAuthzHandler<T> {
 
         let object_group_revision: ObjectGroupRevision =
             self.database_handler.find_one_by_key(query).await?;
-        
-        return self.project_id_of_dataset(object_group_revision.datasete_id.clone()).await;
+
+        return self
+            .project_id_of_dataset(object_group_revision.datasete_id.clone())
+            .await;
     }
 
     async fn project_id_of_dataset_version(&self, id: String) -> Result<String, tonic::Status> {
@@ -318,7 +322,6 @@ impl<T: Database> AuthHandler for ProjectAuthzHandler<T> {
                 )));
             }
         };
-
 
         let query = doc! {
             "token": token

@@ -434,7 +434,8 @@ impl Database for MongoHandler {
             None => {
                 return Err(tonic::Status::not_found(format!(
                     "could not find requested document. type: {} with query {}",
-                    T::get_model_name()?, query.clone().to_string()
+                    T::get_model_name()?,
+                    query.clone().to_string()
                 )))
             }
         };

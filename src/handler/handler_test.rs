@@ -150,7 +150,6 @@ mod server_test {
             "could not find requested document. type: {} with query {}",
             DatasetVersion::get_model_name().unwrap(),
             error_query.to_string()
-            
         ));
 
         assert_eq!(read_version_error.code(), expected_error.code());
@@ -210,9 +209,9 @@ mod server_test {
             .await
             .unwrap_err();
 
-            let error_query = doc! {
-                "id": inserted_revision1.id.as_str()
-            };
+        let error_query = doc! {
+            "id": inserted_revision1.id.as_str()
+        };
 
         let expected_error = tonic::Status::not_found(format!(
             "could not find requested document. type: {} with query {}",

@@ -15,7 +15,6 @@ use std::sync::RwLock;
 use clap::{App, Arg};
 use server::server::start_server;
 
-
 use std::io::Write;
 
 lazy_static! {
@@ -29,18 +28,18 @@ async fn main() -> ResultWrapper<()> {
     conf();
 
     env_logger::Builder::new()
-    .format(|buf, record| {
-        writeln!(
-            buf,
-            "{}:{} {} [{}] - {}",
-            record.file().unwrap_or("unknown"),
-            record.line().unwrap_or(0),
-            chrono::Local::now().format("%Y-%m-%dT%H:%M:%S"),
-            record.level(),
-            record.args()
-        )
-    })
-    .init();
+        .format(|buf, record| {
+            writeln!(
+                buf,
+                "{}:{} {} [{}] - {}",
+                record.file().unwrap_or("unknown"),
+                record.line().unwrap_or(0),
+                chrono::Local::now().format("%Y-%m-%dT%H:%M:%S"),
+                record.level(),
+                record.args()
+            )
+        })
+        .init();
 
     start_server().await
 }

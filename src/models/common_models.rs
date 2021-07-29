@@ -1,3 +1,5 @@
+use std::str;
+
 use mongodb::bson::{doc, from_document, to_document, Document};
 use serde::{Deserialize, Serialize};
 
@@ -40,7 +42,7 @@ pub struct Label {
 pub struct Metadata {
     pub key: String,
     pub labels: Vec<Label>,
-    pub metadata: Vec<u8>,
+    pub metadata: String,
     pub schema: Option<Schema>,
 }
 
@@ -185,7 +187,9 @@ pub fn to_metadata(proto_metadata: &Vec<models::v1::Metadata>) -> Vec<Metadata> 
     for proto_metadata_entry in proto_metadata {
         let metadata_entry = Metadata {
             key: proto_metadata_entry.key.clone(),
-            metadata: proto_metadata_entry.metadata.clone(),
+            metadata: str::from_utf8(proto_metadata_entry.metadata.as_slice())
+                .unwrap()
+                .to_string(),
             labels: to_labels(&proto_metadata_entry.labels),
             ..Default::default()
         };
@@ -261,7 +265,7 @@ pub fn to_proto_metadata(metadata: &Vec<Metadata>) -> Vec<models::v1::Metadata> 
         let proto_metadata_entry = models::v1::Metadata {
             key: metadata_entry.key.to_string(),
             labels: to_proto_labels(&metadata_entry.labels),
-            metadata: metadata_entry.metadata.clone(),
+            metadata: metadata_entry.metadata.clone().into_bytes(),
             ..Default::default()
         };
 

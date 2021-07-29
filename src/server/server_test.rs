@@ -284,13 +284,19 @@ mod server_test {
             .await?;
         let added_revision_ref = added_revision.get_ref();
 
-        let revision = endpoints.object_handler.get_object_group_revision(Request::new(services::v1::GetObjectGroupRevisionRequest{
-            id: added_revision_ref.revision_id.clone(),
-            reference_type: services::v1::ObjectGroupRevisionReferenceType::Id as i32,
-            ..Default::default()
-        })).await.unwrap();
+        let revision = endpoints
+            .object_handler
+            .get_object_group_revision(Request::new(services::v1::GetObjectGroupRevisionRequest {
+                id: added_revision_ref.revision_id.clone(),
+                reference_type: services::v1::ObjectGroupRevisionReferenceType::Id as i32,
+                ..Default::default()
+            }))
+            .await
+            .unwrap();
 
-        let object_id = revision.into_inner().object_group_revision.unwrap().objects[0].id.clone();
+        let object_id = revision.into_inner().object_group_revision.unwrap().objects[0]
+            .id
+            .clone();
 
         load_test(object_id, endpoints, TEST_DATA_REV2).await;
 

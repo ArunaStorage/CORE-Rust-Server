@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
+use scienceobjectsdb_rust_api::sciobjectsdbapi::services;
 use scienceobjectsdb_rust_api::sciobjectsdbapi::services::v1::dataset_objects_service_server::DatasetObjectsService;
-use scienceobjectsdb_rust_api::sciobjectsdbapi::{services};
 use tonic::Response;
 
 use crate::database::database::Database;
@@ -53,7 +53,13 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
             .await?;
 
         let revision_id = match &inner_request.object_group_revision {
-            Some(request) => self.handler_wrapper.create_handler.create_revision_for_group(request, object_group.id.as_str()).await?.id,
+            Some(request) => {
+                self.handler_wrapper
+                    .create_handler
+                    .create_revision_for_group(request, object_group.id.as_str())
+                    .await?
+                    .id
+            }
             None => "".to_string(),
         };
 
@@ -90,7 +96,7 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
 
         let revision_response = services::v1::AddRevisionToObjectGroupResponse {
             revision_id: revision.id,
-            revision_number: revision.revision as u64
+            revision_number: revision.revision as u64,
         };
 
         return Ok(Response::new(revision_response));
@@ -137,15 +143,18 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
             )
             .await?;
 
-        let revision = self.handler_wrapper.read_handler.read_current_revision(inner_request.id.as_str()).await?;
+        let revision = self
+            .handler_wrapper
+            .read_handler
+            .read_current_revision(inner_request.id.as_str())
+            .await?;
 
-        let response = services::v1::GetCurrentObjectGroupRevisionResponse{
+        let response = services::v1::GetCurrentObjectGroupRevisionResponse {
             object_group: None,
-            object_group_revision: Some(revision.to_proto())
+            object_group_revision: Some(revision.to_proto()),
         };
-        
-        return Ok(Response::new(response))
-        
+
+        return Ok(Response::new(response));
     }
 
     async fn get_object_group_revision(

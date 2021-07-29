@@ -200,10 +200,12 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
             value?
         }
 
-        let version = self.handler_wrapper.create_handler.create_datatset_version(inner_request).await?;
-        let response = services::v1::ReleaseDatasetVersionResponse{
-            id: version.id,
-        };
+        let version = self
+            .handler_wrapper
+            .create_handler
+            .create_datatset_version(inner_request)
+            .await?;
+        let response = services::v1::ReleaseDatasetVersionResponse { id: version.id };
 
         return Ok(Response::new(response));
     }
@@ -274,9 +276,10 @@ impl<T: Database> DatasetService for DatasetsServer<T> {
     }
 
     async fn get_current_object_group_revisions(
-            &self,
-            _request: tonic::Request<services::v1::GetCurrentObjectGroupRevisionsRequest>,
-        ) -> Result<tonic::Response<services::v1::GetCurrentObjectGroupRevisionsResponse>, tonic::Status> {
+        &self,
+        _request: tonic::Request<services::v1::GetCurrentObjectGroupRevisionsRequest>,
+    ) -> Result<tonic::Response<services::v1::GetCurrentObjectGroupRevisionsResponse>, tonic::Status>
+    {
         todo!()
     }
 }

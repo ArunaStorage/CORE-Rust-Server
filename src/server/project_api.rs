@@ -37,7 +37,7 @@ impl<T: Database> ProjectService for ProjectServer<T> {
             .await?;
 
         let response = services::v1::CreateProjectResponse {
-            project: project.id
+            project: project.id,
         };
 
         Ok(Response::new(response))
