@@ -178,6 +178,7 @@ mod server_test {
         let current_revision_request = Request::new(services::v1::GetObjectGroupRevisionRequest {
             revision: 0,
             reference_type: services::v1::ObjectGroupRevisionReferenceType::Revision as i32,
+            id: object_group_id.clone(),
             ..Default::default()
         });
 

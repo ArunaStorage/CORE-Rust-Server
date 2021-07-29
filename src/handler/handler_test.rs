@@ -2,6 +2,7 @@
 mod server_test {
     use std::sync::Arc;
 
+    use bson::doc;
     use scienceobjectsdb_rust_api::sciobjectsdbapi::models::v1::Version;
     use scienceobjectsdb_rust_api::sciobjectsdbapi::services;
     use scienceobjectsdb_rust_api::sciobjectsdbapi::services::v1::ReleaseDatasetVersionRequest;
@@ -54,9 +55,15 @@ mod server_test {
             .read_entry_by_id::<DatasetEntry>(created_dataset.id.as_str())
             .await
             .unwrap_err();
+
+        let test_query = doc! {
+            "id": created_dataset.id.as_str()
+        };
+
         let expected_error = tonic::Status::not_found(format!(
-            "could not find requested document. type: {}",
-            DatasetEntry::get_model_name().unwrap()
+            "could not find requested document. type: {} with query {}",
+            DatasetEntry::get_model_name().unwrap(),
+            test_query.to_string()
         ));
         assert_eq!(value.code(), expected_error.code());
         assert_eq!(value.message(), expected_error.message());
@@ -135,9 +142,15 @@ mod server_test {
             .await
             .unwrap_err();
 
+        let error_query = doc! {
+            "id": version.id.as_str()
+        };
+
         let expected_error = tonic::Status::not_found(format!(
-            "could not find requested document. type: {}",
-            DatasetVersion::get_model_name().unwrap()
+            "could not find requested document. type: {} with query {}",
+            DatasetVersion::get_model_name().unwrap(),
+            error_query.to_string()
+            
         ));
 
         assert_eq!(read_version_error.code(), expected_error.code());
@@ -196,9 +209,15 @@ mod server_test {
             .read_entry_by_id::<ObjectGroupRevision>(inserted_revision1.id.as_str())
             .await
             .unwrap_err();
+
+            let error_query = doc! {
+                "id": inserted_revision1.id.as_str()
+            };
+
         let expected_error = tonic::Status::not_found(format!(
-            "could not find requested document. type: {}",
-            ObjectGroupRevision::get_model_name().unwrap()
+            "could not find requested document. type: {} with query {}",
+            ObjectGroupRevision::get_model_name().unwrap(),
+            error_query.to_string()
         ));
 
         assert_eq!(read_revision_error.code(), expected_error.code());

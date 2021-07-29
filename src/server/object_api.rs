@@ -161,7 +161,7 @@ impl<'a, T: Database + 'static> DatasetObjectsService for ObjectServer<T> {
             services::v1::ObjectGroupRevisionReferenceType::Revision => {
                 self.handler_wrapper
                     .read_handler
-                    .read_revision("foo", inner_request.revision)
+                    .read_revision(inner_request.id.as_str(), inner_request.revision)
                     .await
             }
             services::v1::ObjectGroupRevisionReferenceType::Id => {
