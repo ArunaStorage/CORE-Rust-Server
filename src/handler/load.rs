@@ -48,11 +48,12 @@ where
 
         let upload_id_update_query = doc! {
             "objects.id": object.id.clone(),
-
         };
 
         let upload_id_update = doc! {
-            "objects.$": upload_id,
+            "$set": {
+                "objects.$": upload_id,
+            }
         };
 
         self.database_client

@@ -1,6 +1,8 @@
 #[cfg(test)]
 mod server_test {
+    use std::iter::FromIterator;
     use std::sync::Arc;
+    use std::vec;
 
     use scienceobjectsdb_rust_api::sciobjectsdbapi::services::v1::dataset_objects_service_server::DatasetObjectsService;
     use scienceobjectsdb_rust_api::sciobjectsdbapi::services::v1::dataset_service_server::DatasetService;
@@ -12,6 +14,7 @@ mod server_test {
     use tonic::Request;
 
     use crate::handler::common::HandlerWrapper;
+    use crate::handler::read::ReadHandler;
     use crate::test_util::init::test_init;
 
     use crate::database::mongo_connector::MongoHandler;
@@ -268,8 +271,15 @@ mod server_test {
             ..Default::default()
         };
 
+        let create_object_request_multi = services::v1::CreateObjectRequest {
+            filename: "testobject_large.txt".to_string(),
+            filetype: "txt".to_string(),
+            content_len: 8,
+            ..Default::default()
+        };
+
         let create_revision = services::v1::CreateObjectGroupRevisionRequest {
-            objects: vec![create_object_request],
+            objects: vec![create_object_request, create_object_request_multi],
             ..Default::default()
         };
 
@@ -294,13 +304,115 @@ mod server_test {
             .await
             .unwrap();
 
-        let object_id = revision.into_inner().object_group_revision.unwrap().objects[0]
+        let revision_resp = revision.into_inner();
+
+        let object_id = revision_resp.clone().object_group_revision.unwrap().objects[0]
             .id
             .clone();
 
         load_test(object_id, endpoints, TEST_DATA_REV2).await;
 
+        let object_id_2 = revision_resp.clone().object_group_revision.unwrap().objects[1]
+        .id
+        .clone();
+        
+        //multipart_load_test(object_id_2, endpoints).await;
+
         return Ok(());
+    }
+
+    async fn multipart_load_test(object_id: String, endpoints: &TestEndpointStruct) {
+        let init_multipart_req = Request::new(services::v1::StartMultipartUploadRequest {
+            id: object_id.clone(),
+        });
+
+        let data_1 = vec!['a'; 15000000];
+        let data_a_str = String::from_iter(data_1);
+        let data_2 = vec!['b'; 50];
+        let data_b_str = String::from_iter(data_2);
+
+        let init_multipart_response = endpoints
+            .load_handler
+            .start_multipart_upload(init_multipart_req)
+            .await
+            .unwrap()
+            .into_inner();
+        let object = init_multipart_response.object.unwrap();
+
+        let http_client = reqwest::Client::new();
+
+        let link_a_req = Request::new(services::v1::GetMultipartUploadLinkRequest {
+            object_id: object_id.clone(),
+            upload_part: 1,
+        });
+
+        let upload_link_1 = endpoints
+            .load_handler
+            .get_multipart_upload_link(link_a_req)
+            .await
+            .unwrap()
+            .into_inner();
+        let resp = http_client
+            .put(upload_link_1.upload_link)
+            .body(data_b_str.to_string())
+            .send()
+            .await
+            .unwrap();
+        if resp.status() != 200 {
+            let status = resp.status();
+            let msg = resp.text().await.unwrap();
+            panic!(
+                "wrong status code when uploading to S3: {} - {}",
+                status, msg
+            )
+        }
+
+        let etag_1 = resp.headers().get("Etag").unwrap().to_str().unwrap();
+
+        let link_b_req = Request::new(services::v1::GetMultipartUploadLinkRequest {
+            object_id: object_id.clone(),
+            upload_part: 2,
+        });
+
+        let upload_link_2 = endpoints
+            .load_handler
+            .get_multipart_upload_link(link_b_req)
+            .await
+            .unwrap()
+            .into_inner();
+        let resp = http_client
+            .put(upload_link_2.upload_link)
+            .body(data_a_str.to_string())
+            .send()
+            .await
+            .unwrap();
+        if resp.status() != 200 {
+            let status = resp.status();
+            let msg = resp.text().await.unwrap();
+            panic!(
+                "wrong status code when uploading to S3: {} - {}",
+                status, msg
+            )
+        }
+
+        let etag_2 = resp.headers().get("Etag").unwrap().to_str().unwrap();
+
+        let mut parts = Vec::new();
+        parts.push(services::v1::CompletedParts{
+            etag: etag_1.to_string(),
+            part: 1,
+        });
+
+        parts.push(services::v1::CompletedParts{
+            etag: etag_2.to_string(),
+            part: 2,
+        });
+        let complete_multipart_request = Request::new(services::v1::CompleteMultipartUploadRequest{
+            object_id: object_id.clone(),
+            parts
+        });
+
+        endpoints.load_handler.complete_multipart_upload(complete_multipart_request).await.unwrap();
     }
 
     async fn load_test(object_id: String, endpoints: &TestEndpointStruct, testdata: &'static str) {
